@@ -20,13 +20,43 @@ ve deneme sonuçlarını girer; netler ve haftalık özetler otomatik hesaplanı
 Net formülü her yerde aynı: **Net = Doğru − Yanlış / 4**. Bu hesap veritabanında
 `generated always as` sütunu olarak duruyor, yani uygulama koduyla veri asla çelişemez.
 
-Soru sayıları ÖSYM formatına sabit:
+## Soru dağılımı
 
-- **TYT** (herkes): Türkçe 40, Sosyal 20, Temel Matematik 40, Fen 20 → 120
-- **AYT Sayısal**: Matematik 40, Fizik 14, Kimya 13, Biyoloji 13 → 80
-- **AYT Eşit Ağırlık**: Matematik 40, Edebiyat 24, Tarih-1 10, Coğrafya-1 6 → 80
-- **AYT Sözel**: Edebiyat 24, Tarih-1 10, Coğrafya-1 6, Tarih-2 11, Coğrafya-2 11,
-  Felsefe 12, Din Kültürü 6 → 80
+ÖSYM formatına sabit. AYT'de dört test vardır (Matematik 40, Fen 40, TDE–Sosyal-1 40,
+Sosyal-2 40 = 160) ve aday puan türüne göre bunlardan **ikisini**, yani 80 soruyu çözer.
+
+**TYT — 120 soru, her alan için ortak**
+
+| Ders | Soru |
+|---|---|
+| Türkçe | 40 |
+| Temel Matematik | 40 |
+| Sosyal Bilimler | 20 → Tarih 5, Coğrafya 5, Felsefe 5, Din Kültürü 5 |
+| Fen Bilimleri | 20 → Fizik 7, Kimya 7, Biyoloji 6 |
+
+**AYT — 80 soru, alana göre**
+
+| Sayısal | Eşit Ağırlık | Sözel |
+|---|---|---|
+| Matematik 40 | Matematik 40 | Türk Dili ve Edebiyatı 24 |
+| Fizik 14 | Türk Dili ve Edebiyatı 24 | Tarih-1 10 |
+| Kimya 13 | Tarih-1 10 | Coğrafya-1 6 |
+| Biyoloji 13 | Coğrafya-1 6 | Tarih-2 11 |
+| | | Coğrafya-2 11 |
+| | | Felsefe Grubu 12 |
+| | | Din Kültürü 6 |
+| **80** | **80** | **80** |
+
+### İki farklı ders listesi, bilerek
+
+- **Deneme girişi ve hedef netler** yukarıdaki *test* düzeyini kullanır. TYT deneme
+  sonuçları Türkçe / Sosyal / Temel Matematik / Fen olarak raporlanır; alt branş neti
+  verilmez, dolayısıyla hedefi de o düzeyde koymak gerekir.
+- **Günlük soru girişi** branş düzeyindedir: öğrenci "Fen Bilimleri" değil Fizik çalışır.
+  TYT için 9 ders listelenir (yukarıdaki alt kırılımlar), AYT için zaten branş bazlıdır.
+
+Sınav tarihi (`SINAV_TARIHI`, `src/lib/yks.ts`) **19 Haziran 2027** olarak sabittir;
+öğrenciye sorulmaz. ÖSYM takvimi değişirse yalnızca o satır güncellenir.
 
 ## İki ayrı panel
 
@@ -36,7 +66,8 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
 
 **Öğrenci** — sisteme yalnızca veri girmek için gelir:
 
-1. Kayıt → profil kurulumu (alan + TYT/AYT hedef netleri), bir kez.
+1. Kayıt → profil kurulumu (alan + TYT/AYT hedef netleri), bir kez. Sınav tarihi
+   sorulmaz, sistemde sabittir.
 2. Her girişte ana ekranda **iki buton**: *Günlük çözülen soru sayısını gir* ve
    *Deneme sonucu gir*.
 3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.

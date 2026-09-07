@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import ExcelJS from "exceljs";
 import { adminVerisi, aralikDogrula } from "@/lib/admin";
 import { haftalikOzet } from "@/lib/istatistik";
-import { ALAN_ADI, AYT_DERSLER, TYT_DERSLER, dersAdi } from "@/lib/yks";
+import { ALAN_ADI, AYT_DERSLER, SINAV_TARIHI, TYT_DERSLER, dersAdi } from "@/lib/yks";
 import type { Profil } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       uni: o.profil.hedef_universite ?? "",
       bolum: o.profil.hedef_bolum ?? "",
       siralama: o.profil.hedef_siralama ?? "",
-      sinavTarihi: o.profil.sinav_tarihi ?? "",
+      sinavTarihi: SINAV_TARIHI,
       soru: o.soru,
       sure: o.sure,
       blok: o.blok,

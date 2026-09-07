@@ -1,5 +1,13 @@
 import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet } from "./db";
-import { bugun, dersSirasi, haftaBasi, isoTarih, kisaTarih, type SinavTuru } from "./yks";
+import {
+  SINAV_TARIHI,
+  bugun,
+  dersSirasi,
+  haftaBasi,
+  isoTarih,
+  kisaTarih,
+  type SinavTuru,
+} from "./yks";
 
 export type HaftaSatiri = {
   hafta: string;
@@ -140,9 +148,8 @@ export function hedefKarsilastirma(
     .sort((a, b) => dersSirasi(a.ders) - dersSirasi(b.ders));
 }
 
-/** Sınav tarihine kalan gün. Tarih yoksa veya geçmişse null. */
-export function kalanGun(sinavTarihi: string | null): number | null {
-  if (!sinavTarihi) return null;
+/** YKS gününe kalan gün sayısı. Sınav geçmişse null. */
+export function kalanGun(sinavTarihi: string = SINAV_TARIHI): number | null {
   const bugunIso = bugun();
   if (sinavTarihi < bugunIso) return null;
   const fark = Date.parse(`${sinavTarihi}T00:00:00Z`) - Date.parse(`${bugunIso}T00:00:00Z`);

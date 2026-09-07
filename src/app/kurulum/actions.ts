@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { dersler, type Alan } from "@/lib/yks";
+import { SINAV_TARIHI, dersler, type Alan } from "@/lib/yks";
 
 export type ProfilState = { error?: string; ok?: boolean };
 
@@ -19,12 +19,6 @@ const semasi = z.object({
     .optional()
     .transform((v) => (v ? Number(v) : null))
     .refine((v) => v === null || (Number.isFinite(v) && v > 0), "Hedef sıralama pozitif olmalı."),
-  sinavTarihi: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v ? v : null))
-    .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Geçerli bir sınav tarihi seç."),
 });
 
 function metin(v: FormDataEntryValue | null): string | undefined {
@@ -42,7 +36,6 @@ export async function profilKaydet(
     hedefUniversite: metin(formData.get("hedefUniversite")),
     hedefBolum: metin(formData.get("hedefBolum")),
     hedefSiralama: metin(formData.get("hedefSiralama")),
-    sinavTarihi: metin(formData.get("sinavTarihi")),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -63,7 +56,8 @@ export async function profilKaydet(
       hedef_universite: parsed.data.hedefUniversite ?? null,
       hedef_bolum: parsed.data.hedefBolum ?? null,
       hedef_siralama: parsed.data.hedefSiralama,
-      sinav_tarihi: parsed.data.sinavTarihi,
+      // sinav_tarihi artık sorulmuyor; SINAV_TARIHI sabiti herkes için geçerli.
+      sinav_tarihi: SINAV_TARIHI,
       kurulum_tamam: true,
     })
     .eq("id", user.id);

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui";
 import { ogrenciVerisi } from "@/lib/admin";
 import { dersDagilimi, haftalikOzet, hedefKarsilastirma, kalanGun, netTrendi } from "@/lib/istatistik";
-import { ALAN_ADI, dersAdi, kisaTarih, netYaz, tarihYaz, verim } from "@/lib/yks";
+import { ALAN_ADI, SINAV_TARIHI, dersAdi, kisaTarih, netYaz, tarihYaz, verim } from "@/lib/yks";
 
 const HAFTA_SAYISI = 12;
 
@@ -37,7 +37,7 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
   const trend = netTrendi(denemeler);
   const dagilim = dersDagilimi(kayitlar);
   const karsilastirma = hedefKarsilastirma(hedefler, denemeler, bolumler);
-  const gun = kalanGun(profil.sinav_tarihi);
+  const gun = kalanGun();
 
   const toplamSoru = kayitlar.reduce((t, k) => t + k.soru, 0);
   const toplamSure = kayitlar.reduce((t, k) => t + (k.sure_dk ?? 0), 0);
@@ -78,7 +78,7 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
               <CalendarDays className="h-4 w-4 text-accent" aria-hidden="true" />
               <span className="text-sm text-warn">
                 Sınava <span className="tabular font-semibold">{gun}</span> gün
-                <span className="ml-1 text-xs opacity-80">({tarihYaz(profil.sinav_tarihi!)})</span>
+                <span className="ml-1 text-xs opacity-80">({tarihYaz(SINAV_TARIHI)})</span>
               </span>
             </div>
           )}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { CalendarDays, Download } from "lucide-react";
 import {
   Badge,
   Button,
@@ -16,8 +16,8 @@ import {
 } from "@/components/ui";
 import { HaftalikSoruGrafigi, NetTrendGrafigi } from "@/components/grafikler";
 import { adminVerisi, aralikDogrula } from "@/lib/admin";
-import { haftalikOzet, netTrendi } from "@/lib/istatistik";
-import { ALAN_ADI, netYaz, tarihYaz } from "@/lib/yks";
+import { haftalikOzet, kalanGun, netTrendi } from "@/lib/istatistik";
+import { ALAN_ADI, SINAV_TARIHI, netYaz, tarihYaz } from "@/lib/yks";
 
 export const metadata: Metadata = { title: "Yönetici paneli" };
 
@@ -31,16 +31,28 @@ export default async function AdminSayfasi({ searchParams }: PageProps<"/admin">
   const veri = await adminVerisi(baslangic, bitis);
   const haftalar = haftalikOzet(veri.kayitlar, veri.denemeler, 8);
   const trend = netTrendi(veri.denemeler);
+  const gun = kalanGun();
 
   const disaAktarBaglantisi = `/admin/export?baslangic=${baslangic}&bitis=${bitis}`;
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-heading">Genel analiz</h1>
-        <p className="mt-1 text-sm text-muted-ink">
-          {tarihYaz(baslangic)} – {tarihYaz(bitis)} aralığındaki veriler
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-heading">Genel analiz</h1>
+          <p className="mt-1 text-sm text-muted-ink">
+            {tarihYaz(baslangic)} – {tarihYaz(bitis)} aralığındaki veriler
+          </p>
+        </div>
+        {gun !== null && (
+          <div className="flex items-center gap-2 rounded-md border border-accent/40 bg-warn-soft px-3 py-2">
+            <CalendarDays className="h-4 w-4 text-accent" aria-hidden="true" />
+            <span className="text-sm text-warn">
+              YKS&apos;ye <span className="tabular font-semibold">{gun}</span> gün
+              <span className="ml-1 text-xs opacity-80">({tarihYaz(SINAV_TARIHI)})</span>
+            </span>
+          </div>
+        )}
       </div>
 
       <Card>

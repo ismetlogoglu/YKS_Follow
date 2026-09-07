@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { calismaEkle, type KayitState } from "@/app/panel/soru/actions";
-import { bugun, dersler, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
+import { bugun, calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cn } from "./ui";
 
 const BOS: KayitState = {};
@@ -88,7 +88,7 @@ function SoruAlanlari({ alan }: { alan: Alan }) {
   // Çözülen soru henüz girilmemişken uyarı gösterme — yazma sırası kullanıcının tercihi.
   const asim = girildi && nSoru > 0 && bos !== null && bos < 0;
 
-  const liste = dersler(alan, sinav);
+  const liste = calismaDersleri(alan, sinav);
 
   return (
     <>

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, PenLine } from "lucide-react";
+import { CalendarDays, ClipboardList, PenLine } from "lucide-react";
 import { gerekliProfil } from "@/lib/db";
-import { bugun } from "@/lib/yks";
+import { kalanGun } from "@/lib/istatistik";
+import { SINAV_TARIHI, bugun, tarihYaz } from "@/lib/yks";
 
 export const metadata: Metadata = { title: "Panel" };
 
@@ -43,18 +44,31 @@ export default async function PanelSayfasi() {
 
   const ilkAd = (profil.ad_soyad ?? "").split(" ")[0];
   const bugunToplam = (soruSayisi ?? 0) + (denemeSayisi ?? 0);
+  const gun = kalanGun();
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-heading">
-          {ilkAd ? `Merhaba ${ilkAd}` : "Merhaba"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-ink">
-          {bugunToplam === 0
-            ? "Bugün henüz kayıt girmedin."
-            : `Bugün ${bugunToplam} kayıt girdin.`}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-heading">
+            {ilkAd ? `Merhaba ${ilkAd}` : "Merhaba"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-ink">
+            {bugunToplam === 0
+              ? "Bugün henüz kayıt girmedin."
+              : `Bugün ${bugunToplam} kayıt girdin.`}
+          </p>
+        </div>
+
+        {gun !== null && (
+          <div className="flex items-center gap-2 rounded-md border border-accent/40 bg-warn-soft px-3 py-2">
+            <CalendarDays className="h-4 w-4 text-accent" aria-hidden="true" />
+            <span className="text-sm text-warn">
+              Sınava <span className="tabular font-semibold">{gun}</span> gün
+              <span className="ml-1 text-xs opacity-80">({tarihYaz(SINAV_TARIHI)})</span>
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4">

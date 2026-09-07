@@ -6,6 +6,12 @@
 export type Alan = "SAY" | "EA" | "SOZ";
 export type SinavTuru = "TYT" | "AYT";
 
+/**
+ * YKS tarihi. Öğrenciye sorulmaz — herkes için aynı gün.
+ * ÖSYM takvimi değişirse yalnızca bu satır güncellenir.
+ */
+export const SINAV_TARIHI = "2027-06-19";
+
 export const ALANLAR: { value: Alan; label: string; aciklama: string }[] = [
   { value: "SAY", label: "Sayısal", aciklama: "Matematik, Fizik, Kimya, Biyoloji" },
   { value: "EA", label: "Eşit Ağırlık", aciklama: "Matematik, Edebiyat, Tarih-1, Coğrafya-1" },
@@ -25,12 +31,34 @@ export type Ders = {
   soru: number;
 };
 
-/** TYT her alan için ortaktır: 120 soru. */
+/**
+ * TYT her alan için ortaktır: 120 soru.
+ * Bu liste deneme girişi ve hedef netler içindir — TYT deneme sonuçları bu dört
+ * test düzeyinde raporlanır, alt branş netleri ayrı verilmez.
+ */
 export const TYT_DERSLER: Ders[] = [
   { key: "tyt_turkce", ad: "Türkçe", soru: 40 },
   { key: "tyt_sosyal", ad: "Sosyal Bilimler", soru: 20 },
   { key: "tyt_matematik", ad: "Temel Matematik", soru: 40 },
   { key: "tyt_fen", ad: "Fen Bilimleri", soru: 20 },
+];
+
+/**
+ * Günlük çalışma kaydı için TYT dersleri — burada branş ayrımı gerekir.
+ * Öğrenci "Fen Bilimleri" çalışmaz, Fizik çalışır. Soru sayıları ÖSYM'nin
+ * test içi dağılımı: Sosyal 20 = Tarih 5 + Coğrafya 5 + Felsefe 5 + Din 5,
+ * Fen 20 = Fizik 7 + Kimya 7 + Biyoloji 6.
+ */
+export const TYT_CALISMA_DERSLERI: Ders[] = [
+  { key: "tyt_turkce", ad: "Türkçe", soru: 40 },
+  { key: "tyt_matematik", ad: "Temel Matematik", soru: 40 },
+  { key: "tyt_tarih", ad: "Tarih", soru: 5 },
+  { key: "tyt_cografya", ad: "Coğrafya", soru: 5 },
+  { key: "tyt_felsefe", ad: "Felsefe", soru: 5 },
+  { key: "tyt_din", ad: "Din Kültürü ve Ahlak Bilgisi", soru: 5 },
+  { key: "tyt_fizik", ad: "Fizik", soru: 7 },
+  { key: "tyt_kimya", ad: "Kimya", soru: 7 },
+  { key: "tyt_biyoloji", ad: "Biyoloji", soru: 6 },
 ];
 
 /** AYT alana göre değişir; her alanda toplam 80 soru. */
@@ -58,27 +86,38 @@ export const AYT_DERSLER: Record<Alan, Ders[]> = {
   ],
 };
 
+/** Deneme girişi ve hedef netler için ders listesi. */
 export function dersler(alan: Alan, sinav: SinavTuru): Ders[] {
   return sinav === "TYT" ? TYT_DERSLER : AYT_DERSLER[alan];
+}
+
+/** Günlük soru girişi için ders listesi — TYT'de branşlara ayrılır. */
+export function calismaDersleri(alan: Alan, sinav: SinavTuru): Ders[] {
+  return sinav === "TYT" ? TYT_CALISMA_DERSLERI : AYT_DERSLER[alan];
 }
 
 export function tumDersler(alan: Alan): Ders[] {
   return [...TYT_DERSLER, ...AYT_DERSLER[alan]];
 }
 
-/** Bir dersin anahtarından okunabilir adı. Alan değişse de eski kayıtlar okunabilsin diye tüm alanlara bakar. */
+/**
+ * Anahtar → ad eşlemesi. Öğrenci alanını değiştirse veya bir ders listeden
+ * çıksa bile eski kayıtlar okunabilir kalsın diye tüm listeleri kapsar.
+ */
+const TUM_DERSLER_DUZ: Ders[] = [
+  ...TYT_DERSLER,
+  ...TYT_CALISMA_DERSLERI,
+  ...AYT_DERSLER.SAY,
+  ...AYT_DERSLER.EA,
+  ...AYT_DERSLER.SOZ,
+];
+
 const TUM_DERS_ADLARI: Record<string, string> = Object.fromEntries(
-  [...TYT_DERSLER, ...AYT_DERSLER.SAY, ...AYT_DERSLER.EA, ...AYT_DERSLER.SOZ].map((d) => [
-    d.key,
-    d.ad,
-  ]),
+  TUM_DERSLER_DUZ.map((d) => [d.key, d.ad]),
 );
 
 const TUM_SORU_SAYILARI: Record<string, number> = Object.fromEntries(
-  [...TYT_DERSLER, ...AYT_DERSLER.SAY, ...AYT_DERSLER.EA, ...AYT_DERSLER.SOZ].map((d) => [
-    d.key,
-    d.soru,
-  ]),
+  TUM_DERSLER_DUZ.map((d) => [d.key, d.soru]),
 );
 
 export function dersAdi(key: string): string {
@@ -91,7 +130,7 @@ export function dersSoruSayisi(key: string): number {
 
 /** Ders anahtarlarını sınav kağıdındaki sıraya göre dizmek için. Bilinmeyen ders sona düşer. */
 const DERS_SIRASI: Record<string, number> = Object.fromEntries(
-  Object.keys(TUM_DERS_ADLARI).map((key, i) => [key, i]),
+  [...new Set(TUM_DERSLER_DUZ.map((d) => d.key))].map((key, i) => [key, i]),
 );
 
 export function dersSirasi(key: string): number {

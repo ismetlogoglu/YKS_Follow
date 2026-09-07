@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { dersler, type Alan } from "@/lib/yks";
+import { calismaDersleri, type Alan } from "@/lib/yks";
 import { enGecTarih } from "@/lib/tarih";
 
 /** `token` her başarılı kayıtta değişir; form alanları bu değere göre sıfırlanır. */
@@ -76,7 +76,7 @@ export async function calismaEkle(_prev: KayitState, formData: FormData): Promis
   if (!profil?.alan) return { error: "Önce profil kurulumunu tamamla." };
 
   // Ders anahtarı kullanıcının alanına ait olmalı — istemciden gelen değere güvenme.
-  const gecerli = dersler(profil.alan, d.sinav).some((x) => x.key === d.ders);
+  const gecerli = calismaDersleri(profil.alan, d.sinav).some((x) => x.key === d.ders);
   if (!gecerli) return { error: "Bu ders alanına ait değil." };
 
   const bos = d.dogru === null && d.yanlis === null ? null : d.soru - (d.dogru ?? 0) - (d.yanlis ?? 0);

@@ -15,7 +15,6 @@ export default async function AyarlarSayfasi() {
     hedefUniversite: profil.hedef_universite ?? "",
     hedefBolum: profil.hedef_bolum ?? "",
     hedefSiralama: profil.hedef_siralama?.toString() ?? "",
-    sinavTarihi: profil.sinav_tarihi ?? "",
     hedefler: Object.fromEntries(hedefler.map((h) => [h.ders, Number(h.hedef_net)])),
   };
 

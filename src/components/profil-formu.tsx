@@ -3,7 +3,15 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { profilKaydet, type ProfilState } from "@/app/kurulum/actions";
-import { ALANLAR, dersler, toplamSoru, varsayilanHedef, type Alan } from "@/lib/yks";
+import {
+  ALANLAR,
+  SINAV_TARIHI,
+  dersler,
+  tarihYaz,
+  toplamSoru,
+  varsayilanHedef,
+  type Alan,
+} from "@/lib/yks";
 import { Alert, Button, Card, CardHeader, Field, Input, cn } from "./ui";
 
 const BOS: ProfilState = {};
@@ -14,7 +22,6 @@ export type ProfilBaslangic = {
   hedefUniversite: string;
   hedefBolum: string;
   hedefSiralama: string;
-  sinavTarihi: string;
   hedefler: Record<string, number>;
 };
 
@@ -226,19 +233,13 @@ export function ProfilFormu({
                 defaultValue={baslangic.hedefSiralama}
               />
             </Field>
-            <Field
-              label="Sınav tarihi"
-              htmlFor="sinavTarihi"
-              hint="Panelde kalan gün sayacı için."
-            >
-              <Input
-                id="sinavTarihi"
-                name="sinavTarihi"
-                type="date"
-                defaultValue={baslangic.sinavTarihi}
-              />
-            </Field>
           </div>
+
+          <p className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted-ink">
+            Sınav tarihi{" "}
+            <span className="font-medium text-heading">{tarihYaz(SINAV_TARIHI)}</span> olarak
+            sabit — girmene gerek yok.
+          </p>
         </Card>
 
         {kurulum && (
