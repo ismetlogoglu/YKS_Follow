@@ -1,0 +1,159 @@
+import type { Metadata } from "next";
+import { Download } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  Field,
+  Input,
+  Stat,
+  TableWrap,
+  Td,
+  Th,
+} from "@/components/ui";
+import { HaftalikSoruGrafigi, NetTrendGrafigi } from "@/components/grafikler";
+import { adminVerisi, aralikDogrula } from "@/lib/admin";
+import { haftalikOzet, netTrendi } from "@/lib/istatistik";
+import { ALAN_ADI, netYaz, tarihYaz } from "@/lib/yks";
+
+export const metadata: Metadata = { title: "Yönetici paneli" };
+
+export default async function AdminSayfasi({ searchParams }: PageProps<"/admin">) {
+  const sp = await searchParams;
+  const { baslangic, bitis } = aralikDogrula(
+    typeof sp.baslangic === "string" ? sp.baslangic : null,
+    typeof sp.bitis === "string" ? sp.bitis : null,
+  );
+
+  const veri = await adminVerisi(baslangic, bitis);
+  const haftalar = haftalikOzet(veri.kayitlar, veri.denemeler, 8);
+  const trend = netTrendi(veri.denemeler);
+
+  const disaAktarBaglantisi = `/admin/export?baslangic=${baslangic}&bitis=${bitis}`;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div>
+        <h1 className="text-2xl font-semibold text-heading">Genel analiz</h1>
+        <p className="mt-1 text-sm text-muted-ink">
+          {tarihYaz(baslangic)} – {tarihYaz(bitis)} aralığındaki veriler
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader title="Filtrele ve dışa aktar" />
+        <form
+          method="GET"
+          className="flex flex-wrap items-end gap-3 p-4 sm:p-5"
+          aria-label="Tarih aralığı filtresi"
+        >
+          <Field label="Başlangıç" htmlFor="baslangic" className="w-44">
+            <Input id="baslangic" name="baslangic" type="date" defaultValue={baslangic} />
+          </Field>
+          <Field label="Bitiş" htmlFor="bitis" className="w-44">
+            <Input id="bitis" name="bitis" type="date" defaultValue={bitis} />
+          </Field>
+          <Button type="submit">Uygula</Button>
+
+          <div className="ml-auto">
+            {/* Route handler dosyayı indirilir olarak döndürür. */}
+            <a href={disaAktarBaglantisi} download>
+              <Button type="button" variant="secondary">
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Excel olarak indir
+              </Button>
+            </a>
+          </div>
+        </form>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Stat label="Kayıtlı kullanıcı" value={veri.toplam.kullanici} />
+        <Stat
+          label="Aktif öğrenci"
+          value={veri.toplam.aktifOgrenci}
+          sub="Aralıkta veri girenler"
+        />
+        <Stat label="Toplam soru" value={veri.toplam.soru.toLocaleString("tr-TR")} />
+        <Stat
+          label="Toplam süre"
+          value={Math.round((veri.toplam.sure / 60) * 10) / 10}
+          unit="saat"
+        />
+        <Stat label="TYT ort. net" value={netYaz(veri.toplam.tytOrt)} tone="accent" />
+        <Stat label="AYT ort. net" value={netYaz(veri.toplam.aytOrt)} tone="accent" />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Haftalık toplam soru" description="Tüm öğrenciler, son 8 hafta" />
+          <HaftalikSoruGrafigi veri={haftalar} />
+        </Card>
+        <Card>
+          <CardHeader title="Deneme net ortalaması" description="Günlük ortalama, tüm öğrenciler" />
+          <NetTrendGrafigi veri={trend} />
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Öğrenciler"
+          description={`${veri.ogrenciler.length} kayıtlı öğrenci · ${veri.toplam.deneme} deneme`}
+        />
+
+        {veri.ogrenciler.length === 0 ? (
+          <EmptyState title="Henüz kayıtlı öğrenci yok" />
+        ) : (
+          <TableWrap>
+            <thead>
+              <tr>
+                <Th>Öğrenci</Th>
+                <Th>Alan</Th>
+                <Th>Hedef</Th>
+                <Th className="text-right">Soru</Th>
+                <Th className="text-right">Süre (dk)</Th>
+                <Th className="text-right">Blok</Th>
+                <Th className="text-right">Deneme</Th>
+                <Th className="text-right">TYT ort.</Th>
+                <Th className="text-right">AYT ort.</Th>
+                <Th>Son aktivite</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {veri.ogrenciler.map((o) => (
+                <tr key={o.profil.id} className="transition-colors duration-200 hover:bg-canvas">
+                  <Td>
+                    <p className="font-medium text-heading">{o.profil.ad_soyad ?? "—"}</p>
+                    <p className="text-xs text-muted-ink">{o.profil.email}</p>
+                  </Td>
+                  <Td>
+                    {o.profil.alan ? (
+                      <Badge>{ALAN_ADI[o.profil.alan]}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-ink">Kurulum yok</span>
+                    )}
+                  </Td>
+                  <Td className="max-w-[14rem] truncate text-muted-ink">
+                    {[o.profil.hedef_universite, o.profil.hedef_bolum].filter(Boolean).join(" — ") ||
+                      "—"}
+                  </Td>
+                  <Td className="tabular text-right font-semibold text-heading">{o.soru}</Td>
+                  <Td className="tabular text-right text-muted-ink">{o.sure}</Td>
+                  <Td className="tabular text-right text-muted-ink">{o.blok}</Td>
+                  <Td className="tabular text-right text-muted-ink">{o.denemeSayisi}</Td>
+                  <Td className="tabular text-right">{netYaz(o.tytOrt)}</Td>
+                  <Td className="tabular text-right">{netYaz(o.aytOrt)}</Td>
+                  <Td className="tabular whitespace-nowrap text-muted-ink">
+                    {o.sonAktivite ? tarihYaz(o.sonAktivite) : "—"}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </TableWrap>
+        )}
+      </Card>
+    </div>
+  );
+}
