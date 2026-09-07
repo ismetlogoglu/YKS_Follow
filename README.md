@@ -10,10 +10,10 @@ ve deneme sonuçlarını girer; netler ve haftalık özetler otomatik hesaplanı
 
 | Excel sayfası | Karşılığı |
 |---|---|
-| Hedef | Profil kurulumu + `/panel` hedef-mevcut karşılaştırma tablosu |
+| Hedef | Profil kurulumu + eğitmenin hedef-mevcut karşılaştırma tablosu |
 | Günlük Takip | `/panel/soru` — net ve verim otomatik |
 | Deneme TYT / AYT | `/panel/deneme` — sadece D/Y girilir, net ve boş hesaplanır |
-| Haftalık Özet | `/panel/gelisim` haftalık tablo + grafikler |
+| Haftalık Özet | Eğitmenin öğrenci detay sayfası + Excel çıktısı |
 | Konu TYT / AYT | Günlük girişteki serbest "Konu" alanı |
 | Haftalık Program | Kapsam dışı (istenmedi) |
 
@@ -28,13 +28,26 @@ Soru sayıları ÖSYM formatına sabit:
 - **AYT Sözel**: Edebiyat 24, Tarih-1 10, Coğrafya-1 6, Tarih-2 11, Coğrafya-2 11,
   Felsefe 12, Din Kültürü 6 → 80
 
-## Akış
+## İki ayrı panel
 
-**Öğrenci:** kayıt → profil kurulumu (alan + hedefler) → panel → günlük soru / deneme girişi →
-gelişim grafikleri.
+Öğrenci ve eğitmen aynı kod tabanını paylaşır ama **aynı ekranı asla görmez**. Giriş sonrası
+yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına düşerse `/admin`'e,
+öğrenci `/admin` altına düşerse `/panel`'e geri gönderilir.
 
-**Yönetici:** `/admin` → genel metrikler, öğrenci tablosu, tarih aralığı filtresi,
-Excel (.xlsx) dışa aktarma.
+**Öğrenci** — sisteme yalnızca veri girmek için gelir:
+
+1. Kayıt → profil kurulumu (alan + TYT/AYT hedef netleri), bir kez.
+2. Her girişte ana ekranda **iki buton**: *Günlük çözülen soru sayısını gir* ve
+   *Deneme sonucu gir*.
+3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.
+   Grafik ve analiz öğrenciye gösterilmez.
+
+**Eğitmen** — `/admin`:
+
+- Genel metrikler, haftalık toplam soru ve deneme net ortalaması grafikleri
+- Öğrenci tablosu; isme tıklayınca **öğrenci detayı** (`/admin/ogrenci/[id]`): net trendi,
+  haftalık soru/süre grafikleri, hedef-mevcut karşılaştırması, ders dağılımı ve tüm kayıtlar
+- Tarih aralığı filtresi ve Excel (.xlsx) dışa aktarma
 
 ## Teknik
 
@@ -57,9 +70,10 @@ src/
     (auth)/giris, (auth)/kayit    Giriş ve kayıt
     auth/                          Server actions + OAuth callback
     kurulum/                       İlk profil kurulumu (2 adım)
-    panel/                         Öğrenci paneli
-      soru/ deneme/ gelisim/ ayarlar/
-    admin/                         Yönetici paneli
+    panel/                         Öğrenci — iki butonluk giriş ekranı
+      soru/ deneme/ ayarlar/
+    admin/                         Eğitmen paneli
+      ogrenci/[id]/                Öğrenci detayı: grafikler + tüm kayıtlar
       export/                      .xlsx indirme
   components/                      UI kiti, formlar, grafikler
   lib/

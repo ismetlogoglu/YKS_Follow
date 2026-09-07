@@ -67,8 +67,17 @@ export type DenemeDers = {
  * Oturumu doğrular ve profili getirir.
  * Kurulumu tamamlamamış kullanıcıyı /kurulum'a yollar (kurulum sayfasının kendisi hariç).
  */
-export async function gerekliProfil(opts: { kurulumZorunlu?: boolean } = {}) {
-  const { kurulumZorunlu = true } = opts;
+/**
+ * Oturumu doğrular ve profili getirir.
+ *
+ * `adminiYonlendir`: eğitmen öğrenci ekranlarına düşmesin diye /admin'e yollar.
+ * İki panel bilerek ayrı tutuluyor — eğitmen yalnızca yönetici panelini,
+ * öğrenci yalnızca veri giriş ekranlarını görür.
+ */
+export async function gerekliProfil(
+  opts: { kurulumZorunlu?: boolean; adminiYonlendir?: boolean } = {},
+) {
+  const { kurulumZorunlu = true, adminiYonlendir = false } = opts;
   const supabase = await createClient();
 
   const {
@@ -81,6 +90,10 @@ export async function gerekliProfil(opts: { kurulumZorunlu?: boolean } = {}) {
     .select("*")
     .eq("id", user.id)
     .maybeSingle<Profil>();
+
+  if (adminiYonlendir && profil?.is_admin) {
+    redirect("/admin");
+  }
 
   if (kurulumZorunlu && (!profil?.kurulum_tamam || !profil.alan)) {
     redirect("/kurulum");

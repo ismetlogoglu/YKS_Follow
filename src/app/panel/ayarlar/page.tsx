@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { ProfilFormu, type ProfilBaslangic } from "@/components/profil-formu";
-import { Alert } from "@/components/ui";
+import { Alert, GeriBaglantisi } from "@/components/ui";
 import { gerekliProfil, hedefNetler } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Ayarlar" };
 
 export default async function AyarlarSayfasi() {
-  const { user, profil } = await gerekliProfil();
+  const { user, profil } = await gerekliProfil({ adminiYonlendir: true });
   const hedefler = await hedefNetler(user.id);
 
   const baslangic: ProfilBaslangic = {
@@ -22,7 +22,8 @@ export default async function AyarlarSayfasi() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold text-heading">Ayarlar</h1>
+        <GeriBaglantisi href="/panel">Ana ekran</GeriBaglantisi>
+        <h1 className="mt-1 text-2xl font-semibold text-heading">Ayarlar</h1>
         <p className="mt-1 text-sm text-muted-ink">
           Hesap: <span className="font-medium text-ink">{profil.email}</span>
         </p>

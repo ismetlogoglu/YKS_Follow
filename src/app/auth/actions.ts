@@ -33,6 +33,26 @@ function ceviriHata(mesaj: string): string {
   return "Bir şeyler ters gitti. Lütfen tekrar dene.";
 }
 
+/**
+ * Giriş sonrası nereye gidileceğini rol belirler: eğitmen doğrudan yönetici
+ * paneline, öğrenci veri giriş ekranına. Öğrenci paneliyle admin paneli
+ * birbirinden ayrı tutulur.
+ */
+async function girisSonrasiYol(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  devam: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle<{ is_admin: boolean }>();
+
+  if (data?.is_admin) return "/admin";
+  return devam.startsWith("/panel") ? devam : "/panel";
+}
+
 async function siteOrigin(): Promise<string> {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   const h = await headers();
@@ -51,16 +71,18 @@ export async function girisYap(_prev: AuthState, formData: FormData): Promise<Au
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.sifre,
   });
 
-  if (error) return { error: ceviriHata(error.message) };
+  if (error || !data.user) return { error: ceviriHata(error?.message ?? "") };
 
   const devam = String(formData.get("devam") ?? "");
+  const yol = await girisSonrasiYol(supabase, data.user.id, devam);
+
   revalidatePath("/", "layout");
-  redirect(devam.startsWith("/") ? devam : "/panel");
+  redirect(yol);
 }
 
 export async function kayitOl(_prev: AuthState, formData: FormData): Promise<AuthState> {

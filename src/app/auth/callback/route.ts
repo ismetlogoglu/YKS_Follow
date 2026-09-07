@@ -49,10 +49,14 @@ export async function GET(request: NextRequest) {
   if (user) {
     const { data: profil } = await supabase
       .from("profiles")
-      .select("kurulum_tamam")
+      .select("kurulum_tamam, is_admin")
       .eq("id", user.id)
-      .maybeSingle();
+      .maybeSingle<{ kurulum_tamam: boolean; is_admin: boolean }>();
 
+    // Eğitmenin alan/hedef kurulumuna ihtiyacı yok, doğrudan yönetici paneline.
+    if (profil?.is_admin) {
+      return NextResponse.redirect(new URL("/admin", origin));
+    }
     if (!profil?.kurulum_tamam) {
       return NextResponse.redirect(new URL("/kurulum", origin));
     }

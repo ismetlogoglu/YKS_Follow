@@ -6,6 +6,7 @@ import {
   Card,
   CardHeader,
   EmptyState,
+  GeriBaglantisi,
   Td,
   Th,
   TableWrap,
@@ -17,7 +18,7 @@ import { calismaSil } from "./actions";
 export const metadata: Metadata = { title: "Soru girişi" };
 
 export default async function SoruSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil();
+  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
 
   const { data } = await supabase
     .from("study_logs")
@@ -32,7 +33,10 @@ export default async function SoruSayfasi() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold text-heading">Soru girişi</h1>
+        <GeriBaglantisi href="/panel">Ana ekran</GeriBaglantisi>
+        <h1 className="mt-1 text-2xl font-semibold text-heading">
+          Günlük çözülen soru sayısı
+        </h1>
         <p className="mt-1 text-sm text-muted-ink">
           Net otomatik hesaplanır: <span className="font-mono">Doğru − Yanlış / 4</span>
         </p>

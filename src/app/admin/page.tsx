@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Download } from "lucide-react";
 import {
   Badge,
@@ -70,7 +71,7 @@ export default async function AdminSayfasi({ searchParams }: PageProps<"/admin">
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Kayıtlı kullanıcı" value={veri.toplam.kullanici} />
+        <Stat label="Kayıtlı öğrenci" value={veri.toplam.kullanici} />
         <Stat
           label="Aktif öğrenci"
           value={veri.toplam.aktifOgrenci}
@@ -100,7 +101,7 @@ export default async function AdminSayfasi({ searchParams }: PageProps<"/admin">
       <Card>
         <CardHeader
           title="Öğrenciler"
-          description={`${veri.ogrenciler.length} kayıtlı öğrenci · ${veri.toplam.deneme} deneme`}
+          description={`${veri.ogrenciler.length} kayıtlı öğrenci · ${veri.toplam.deneme} deneme · detay için isme tıkla`}
         />
 
         {veri.ogrenciler.length === 0 ? (
@@ -125,7 +126,12 @@ export default async function AdminSayfasi({ searchParams }: PageProps<"/admin">
               {veri.ogrenciler.map((o) => (
                 <tr key={o.profil.id} className="transition-colors duration-200 hover:bg-canvas">
                   <Td>
-                    <p className="font-medium text-heading">{o.profil.ad_soyad ?? "—"}</p>
+                    <Link
+                      href={`/admin/ogrenci/${o.profil.id}`}
+                      className="block font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      {o.profil.ad_soyad ?? o.profil.email ?? "—"}
+                    </Link>
                     <p className="text-xs text-muted-ink">{o.profil.email}</p>
                   </Td>
                   <Td>

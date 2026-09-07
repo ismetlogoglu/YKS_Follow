@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { CalismaKaydi, DenemeDers, DenemeToplam, Profil } from "@/lib/db";
+import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet, Profil } from "@/lib/db";
 import { yerelIso } from "@/lib/yks";
 
 export type OgrenciOzeti = {
@@ -59,10 +59,10 @@ function ortalama(sayilar: number[]): number | null {
 }
 
 /**
- * Yönetici görünümü için tüm öğrencilerin verisini toplar.
- * Erişim RLS'teki is_admin() politikasıyla korunur; burada ayrıca bayrak kontrol edilir.
+ * Yönetici bölümünün tek kapısı. RLS zaten yetkisiz okumayı engelliyor;
+ * bu kontrol kullanıcıyı boş sayfa yerine kendi paneline yollamak için.
  */
-export async function adminVerisi(baslangic: string, bitis: string): Promise<AdminVerisi> {
+async function adminKapisi() {
   const supabase = await createClient();
 
   const {
@@ -70,13 +70,74 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
   } = await supabase.auth.getUser();
   if (!user) redirect("/giris");
 
-  const { data: benimProfilim } = await supabase
+  const { data } = await supabase
     .from("profiles")
     .select("is_admin")
     .eq("id", user.id)
     .maybeSingle<{ is_admin: boolean }>();
 
-  if (!benimProfilim?.is_admin) redirect("/panel");
+  if (!data?.is_admin) redirect("/panel");
+
+  return supabase;
+}
+
+export type OgrenciDetayi = {
+  profil: Profil;
+  kayitlar: CalismaKaydi[];
+  denemeler: DenemeToplam[];
+  bolumler: DenemeDers[];
+  hedefler: HedefNet[];
+};
+
+/** Tek bir öğrencinin tüm verisi — eğitmenin detay sayfası için. */
+export async function ogrenciVerisi(userId: string): Promise<OgrenciDetayi | null> {
+  const supabase = await adminKapisi();
+
+  const { data: profil } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle<Profil>();
+
+  if (!profil) return null;
+
+  const [calismaSonuc, denemeSonuc, hedefSonuc] = await Promise.all([
+    supabase
+      .from("study_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("tarih", { ascending: false }),
+    supabase.from("mock_exam_totals").select("*").eq("user_id", userId).order("tarih"),
+    supabase.from("net_targets").select("sinav, ders, hedef_net").eq("user_id", userId),
+  ]);
+
+  const denemeler = (denemeSonuc.data ?? []) as DenemeToplam[];
+
+  const { data: bolumVerisi } = denemeler.length
+    ? await supabase
+        .from("mock_exam_sections")
+        .select("*")
+        .in(
+          "mock_exam_id",
+          denemeler.map((d) => d.id),
+        )
+    : { data: [] };
+
+  return {
+    profil,
+    kayitlar: (calismaSonuc.data ?? []) as CalismaKaydi[],
+    denemeler,
+    bolumler: (bolumVerisi ?? []) as DenemeDers[],
+    hedefler: (hedefSonuc.data ?? []) as HedefNet[],
+  };
+}
+
+/**
+ * Yönetici görünümü için tüm öğrencilerin verisini toplar.
+ * Erişim RLS'teki is_admin() politikasıyla korunur; burada ayrıca bayrak kontrol edilir.
+ */
+export async function adminVerisi(baslangic: string, bitis: string): Promise<AdminVerisi> {
+  const supabase = await adminKapisi();
 
   const [profilSonuc, calismaSonuc, denemeSonuc] = await Promise.all([
     supabase.from("profiles").select("*").order("created_at", { ascending: false }),
@@ -94,7 +155,8 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
       .order("tarih", { ascending: false }),
   ]);
 
-  const profiller = (profilSonuc.data ?? []) as Profil[];
+  // Eğitmen hesapları öğrenci listesinde görünmemeli.
+  const profiller = ((profilSonuc.data ?? []) as Profil[]).filter((p) => !p.is_admin);
   const kayitlar = (calismaSonuc.data ?? []) as CalismaKaydi[];
   const denemeler = (denemeSonuc.data ?? []) as DenemeToplam[];
 
@@ -143,7 +205,7 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
     bolumler,
     ogrenciler,
     toplam: {
-      kullanici: profiller.length,
+      kullanici: profiller.length, // eğitmenler hariç kayıtlı öğrenci sayısı
       aktifOgrenci: ogrenciler.filter((o) => o.soru > 0 || o.denemeSayisi > 0).length,
       soru: kayitlar.reduce((t, k) => t + k.soru, 0),
       sure: kayitlar.reduce((t, k) => t + (k.sure_dk ?? 0), 0),

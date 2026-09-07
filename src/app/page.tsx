@@ -29,7 +29,16 @@ export default async function AnaSayfa() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) redirect("/panel");
+  if (user) {
+    // Eğitmen ve öğrenci farklı yerlere düşer; iki panel birbirinden ayrı.
+    const { data: profil } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle<{ is_admin: boolean }>();
+
+    redirect(profil?.is_admin ? "/admin" : "/panel");
+  }
 
   return (
     <>
@@ -52,11 +61,12 @@ export default async function AnaSayfa() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-12 sm:py-20">
         <div className="max-w-2xl">
           <h1 className="text-3xl leading-tight font-semibold text-heading sm:text-4xl">
-            Excel tablosu yerine, YKS takibin tek panelde.
+            Çözdüğün soruyu ve deneme netlerini tek yerden kaydet.
           </h1>
           <p className="mt-4 text-lg text-muted-ink">
-            Alanını seç, TYT ve AYT net hedeflerini belirle. Her gün çözdüğün soruyu ve her
-            denemenin sonucunu gir; gerisini sistem hesaplasın.
+            Kaydol, alanını ve net hedeflerini belirle. Sonrası iki tıklama: her gün çözdüğün
+            soruyu ve girdiğin denemenin sonucunu yaz — netleri sistem hesaplasın, koçun takip
+            etsin.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/kayit">

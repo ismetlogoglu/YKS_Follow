@@ -1,56 +1,45 @@
 import Link from "next/link";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { Wordmark } from "@/components/brand";
-import { AltNav, UstNav } from "@/components/panel-nav";
 import { Button } from "@/components/ui";
 import { cikisYap } from "@/app/auth/actions";
 import { gerekliProfil } from "@/lib/db";
-import { ALAN_ADI } from "@/lib/yks";
 
 export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
-  const { profil } = await gerekliProfil();
+  // Eğitmen buraya hiç düşmez; adminiYonlendir onu /admin'e geri yollar.
+  const { profil } = await gerekliProfil({ adminiYonlendir: true });
 
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/panel" className="min-w-0">
             <Wordmark />
           </Link>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden text-right sm:block">
-              <p className="truncate text-sm font-medium text-heading">
-                {profil.ad_soyad ?? profil.email}
-              </p>
-              <p className="text-xs text-muted-ink">
-                {profil.alan ? ALAN_ADI[profil.alan] : "Alan seçilmedi"}
-              </p>
-            </div>
+          <div className="flex items-center gap-1">
+            <span className="mr-2 hidden truncate text-sm font-medium text-heading sm:block">
+              {profil.ad_soyad ?? profil.email}
+            </span>
 
-            {profil.is_admin && (
-              <Link href="/admin">
-                <Button variant="outline" size="sm" title="Yönetici paneli">
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Admin</span>
-                </Button>
-              </Link>
-            )}
+            <Link href="/panel/ayarlar">
+              <Button variant="ghost" size="sm" title="Ayarlar">
+                <Settings className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Ayarlar</span>
+              </Button>
+            </Link>
 
             <form action={cikisYap}>
               <Button type="submit" variant="ghost" size="sm" title="Çıkış yap">
                 <LogOut className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only sm:not-sr-only">Çıkış</span>
+                <span className="sr-only">Çıkış yap</span>
               </Button>
             </form>
           </div>
         </div>
-        <UstNav />
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 md:pb-10">{children}</main>
-
-      <AltNav />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
     </>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DenemeFormu } from "@/components/deneme-formu";
 import { SilButonu } from "@/components/sil-butonu";
-import { Badge, Card, CardHeader, EmptyState } from "@/components/ui";
+import { Badge, Card, CardHeader, EmptyState, GeriBaglantisi } from "@/components/ui";
 import { gerekliProfil, type DenemeDers, type DenemeToplam } from "@/lib/db";
 import { dersAdi, dersSirasi, netYaz, tarihYaz } from "@/lib/yks";
 import { denemeSil } from "./actions";
@@ -9,7 +9,7 @@ import { denemeSil } from "./actions";
 export const metadata: Metadata = { title: "Denemeler" };
 
 export default async function DenemeSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil();
+  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
 
   const { data: denemeVerisi } = await supabase
     .from("mock_exam_totals")
@@ -41,9 +41,10 @@ export default async function DenemeSayfasi() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold text-heading">Denemeler</h1>
+        <GeriBaglantisi href="/panel">Ana ekran</GeriBaglantisi>
+        <h1 className="mt-1 text-2xl font-semibold text-heading">Deneme sonucu</h1>
         <p className="mt-1 text-sm text-muted-ink">
-          Her denemenin ders bazlı netleri ve toplam neti burada birikiyor.
+          Sadece doğru ve yanlış sayısını gir; netler otomatik hesaplanır.
         </p>
       </div>
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
 export function cn(...parts: (string | false | null | undefined)[]) {
@@ -233,6 +234,34 @@ export function Alert({
       {title && <p className="font-semibold">{title}</p>}
       {children}
     </div>
+  );
+}
+
+/** Alt sayfalardan ana ekrana dönüş. Öğrenci panelinde menü yok, dönüş yolu bu. */
+export function GeriBaglantisi({
+  href,
+  children,
+}: {
+  href: ComponentProps<typeof Link>["href"];
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-ink transition-colors duration-200 hover:text-primary"
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        aria-hidden="true"
+      >
+        <path d="M10 3 5 8l5 5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {children}
+    </Link>
   );
 }
 

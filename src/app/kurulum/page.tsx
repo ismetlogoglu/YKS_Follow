@@ -6,7 +6,11 @@ import { gerekliProfil, hedefNetler } from "@/lib/db";
 export const metadata: Metadata = { title: "Profil kurulumu" };
 
 export default async function KurulumSayfasi() {
-  const { user, profil } = await gerekliProfil({ kurulumZorunlu: false });
+  // Eğitmenin alan/hedef kurulumuna ihtiyacı yok; doğrudan yönetici paneline gider.
+  const { user, profil } = await gerekliProfil({
+    kurulumZorunlu: false,
+    adminiYonlendir: true,
+  });
   const hedefler = await hedefNetler(user.id);
 
   const baslangic: ProfilBaslangic = {
