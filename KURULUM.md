@@ -2,6 +2,11 @@
 
 Sıfırdan çalışır hale getirmek ~15 dakika. Sırayla git.
 
+> **Bu depodaki kurulum zaten yapıldı.** `.env.local` dolduruldu ve Supabase şeması
+> çalıştırıldı (1–4. adımlar tamam). Sende kalanlar: **5. adım** (kendini admin yap) ve
+> **8. adım** (Redirect URL'ler — bu eksikse e-posta doğrulama linki geri dönemez).
+> Aşağısı sıfırdan kuracak biri için tam referans.
+
 ---
 
 ## 0. Bana ne vermen gerekiyor?
