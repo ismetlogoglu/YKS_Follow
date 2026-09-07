@@ -17,7 +17,8 @@ import { dersAdi, netYaz } from "@/lib/yks";
 
 const RENK = {
   tyt: "#1e40af",
-  ayt: "#d97706",
+  ayt: "#b45309", // --color-accent ile aynı ton; mavi/turuncu çifti renk körlüğünde de ayrışır
+
   soru: "#3b82f6",
   sure: "#64748b",
   izgara: "#dbeafe",

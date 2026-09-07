@@ -6,7 +6,9 @@
   --color-primary-hover: #1d3a9e;
   --color-on-primary: #ffffff;
   --color-secondary: #3b82f6;
-  --color-accent: #d97706;
+  /* amber-700. Bir üst ton (#d97706) beyaz yazıyla 3,19:1 veriyordu — AA sınırı 4,5:1.
+     Bu ton hem dolu butonda hem beyaz zeminde metin olarak 5,02:1. */
+  --color-accent: #b45309;
   --color-on-accent: #ffffff;
 
   --color-canvas: #f8fafc;
