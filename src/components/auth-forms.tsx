@@ -61,12 +61,20 @@ function Ayirac() {
   );
 }
 
-export function GirisFormu({ devam, uyari }: { devam?: string; uyari?: string }) {
+export function GirisFormu({
+  devam,
+  uyari,
+  uyariTonu = "danger",
+}: {
+  devam?: string;
+  uyari?: string;
+  uyariTonu?: "danger" | "success";
+}) {
   const [state, formAction] = useActionState(girisYap, BOS);
 
   return (
     <div className="flex flex-col gap-5">
-      {uyari && <Alert tone="danger">{uyari}</Alert>}
+      {uyari && <Alert tone={uyariTonu}>{uyari}</Alert>}
       {state.error && <Alert tone="danger">{state.error}</Alert>}
 
       <form action={formAction} className="flex flex-col gap-4" noValidate>
