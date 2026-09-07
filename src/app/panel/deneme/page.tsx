@@ -3,7 +3,7 @@ import { DenemeFormu } from "@/components/deneme-formu";
 import { SilButonu } from "@/components/sil-butonu";
 import { Badge, Card, CardHeader, EmptyState } from "@/components/ui";
 import { gerekliProfil, type DenemeDers, type DenemeToplam } from "@/lib/db";
-import { dersAdi, netYaz, tarihYaz } from "@/lib/yks";
+import { dersAdi, dersSirasi, netYaz, tarihYaz } from "@/lib/yks";
 import { denemeSil } from "./actions";
 
 export const metadata: Metadata = { title: "Denemeler" };
@@ -63,9 +63,9 @@ export default async function DenemeSayfasi() {
         ) : (
           <ul className="divide-y divide-line">
             {denemeler.map((d) => {
-              const dersSatirlari = (bolumHaritasi.get(d.id) ?? []).filter(
-                (b) => b.dogru > 0 || b.yanlis > 0,
-              );
+              const dersSatirlari = (bolumHaritasi.get(d.id) ?? [])
+                .filter((b) => b.dogru > 0 || b.yanlis > 0)
+                .sort((a, b) => dersSirasi(a.ders) - dersSirasi(b.ders));
 
               return (
                 <li key={d.id} className="px-4 py-3 sm:px-5">

@@ -1,5 +1,5 @@
 import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet } from "./db";
-import { bugun, haftaBasi, isoTarih, kisaTarih, type SinavTuru } from "./yks";
+import { bugun, dersSirasi, haftaBasi, isoTarih, kisaTarih, type SinavTuru } from "./yks";
 
 export type HaftaSatiri = {
   hafta: string;
@@ -120,21 +120,24 @@ export function hedefKarsilastirma(
     dersNetleri.set(b.ders, liste);
   }
 
-  return hedefler.map((h) => {
-    const netler = dersNetleri.get(h.ders) ?? [];
-    const mevcut =
-      netler.length === 0
-        ? null
-        : Math.round((netler.reduce((t, v) => t + v, 0) / netler.length) * 100) / 100;
-    const hedef = Number(h.hedef_net);
-    return {
-      ders: h.ders,
-      sinav: h.sinav,
-      hedef,
-      mevcut,
-      fark: mevcut === null ? null : Math.round((mevcut - hedef) * 100) / 100,
-    };
-  });
+  return hedefler
+    .map((h) => {
+      const netler = dersNetleri.get(h.ders) ?? [];
+      const mevcut =
+        netler.length === 0
+          ? null
+          : Math.round((netler.reduce((t, v) => t + v, 0) / netler.length) * 100) / 100;
+      const hedef = Number(h.hedef_net);
+      return {
+        ders: h.ders,
+        sinav: h.sinav,
+        hedef,
+        mevcut,
+        fark: mevcut === null ? null : Math.round((mevcut - hedef) * 100) / 100,
+      };
+    })
+    // Veritabanı satır sırası garanti değil; tabloyu sınav kağıdı sırasına sok.
+    .sort((a, b) => dersSirasi(a.ders) - dersSirasi(b.ders));
 }
 
 /** Sınav tarihine kalan gün. Tarih yoksa veya geçmişse null. */

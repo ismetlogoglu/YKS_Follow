@@ -89,6 +89,15 @@ export function dersSoruSayisi(key: string): number {
   return TUM_SORU_SAYILARI[key] ?? 0;
 }
 
+/** Ders anahtarlarını sınav kağıdındaki sıraya göre dizmek için. Bilinmeyen ders sona düşer. */
+const DERS_SIRASI: Record<string, number> = Object.fromEntries(
+  Object.keys(TUM_DERS_ADLARI).map((key, i) => [key, i]),
+);
+
+export function dersSirasi(key: string): number {
+  return DERS_SIRASI[key] ?? Number.MAX_SAFE_INTEGER;
+}
+
 export function toplamSoru(alan: Alan, sinav: SinavTuru): number {
   return dersler(alan, sinav).reduce((t, d) => t + d.soru, 0);
 }

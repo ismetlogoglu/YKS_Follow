@@ -203,10 +203,11 @@ export async function GET(request: NextRequest) {
 
   denemeSayfasi("TYT", TYT_DERSLER);
 
+  const aytDenemeIdleri = new Set(
+    veri.denemeler.filter((d) => d.sinav === "AYT").map((d) => d.id),
+  );
   const kullanilanAyt = new Set(
-    veri.bolumler
-      .filter((b) => veri.denemeler.some((d) => d.id === b.mock_exam_id && d.sinav === "AYT"))
-      .map((b) => b.ders),
+    veri.bolumler.filter((b) => aytDenemeIdleri.has(b.mock_exam_id)).map((b) => b.ders),
   );
   const aytDersleri = AYT_SIRA.filter((d) => kullanilanAyt.has(d.key));
   denemeSayfasi("AYT", aytDersleri.length > 0 ? aytDersleri : AYT_DERSLER.SAY);
