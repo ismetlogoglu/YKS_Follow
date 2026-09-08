@@ -5,43 +5,61 @@ import { createClient } from "@/lib/supabase/server";
 import { oturum } from "@/lib/db";
 import { GUNLER, PROGRAM_DERSLERI, PROGRAM_SATIR, hucreAnahtari } from "@/lib/yks";
 
-export type ProgramState = { error?: string; ok?: boolean; kayitZamani?: string };
+export type ProgramSonucu =
+  | { durum: "ok"; kayitZamani: string }
+  | { durum: "hata"; mesaj: string; tabloYok?: boolean };
 
+/**
+ * Hücreleri doğrudan nesne olarak alır — veri zaten istemci state'inde tutuluyor,
+ * FormData'ya çevirip geri okumak gereksiz bir tur olurdu.
+ */
 export async function programKaydet(
-  _prev: ProgramState,
-  formData: FormData,
-): Promise<ProgramState> {
+  gelen: Record<string, string>,
+): Promise<ProgramSonucu> {
   const { user, profil } = await oturum();
-  if (!user) return { error: "Oturumun düşmüş görünüyor. Tekrar giriş yap." };
-  if (!profil?.alan) return { error: "Önce profil kurulumunu tamamla." };
+  if (!user) return { durum: "hata", mesaj: "Oturumun düşmüş görünüyor. Tekrar giriş yap." };
+  if (!profil?.alan) return { durum: "hata", mesaj: "Önce profil kurulumunu tamamla." };
 
-  // Geçerli ders anahtarları sunucuda alandan türetilir; istemciden gelen
-  // değerlere güvenilmez.
+  // Geçerli anahtarlar sunucuda alandan türetilir; istemciden gelen değerlere güvenilmez.
   const gecerliDersler = new Set(PROGRAM_DERSLERI[profil.alan].map((d) => d.key));
   const hucreler: Record<string, string> = {};
 
   for (let gun = 0; gun < GUNLER.length; gun++) {
     for (let satir = 0; satir < PROGRAM_SATIR; satir++) {
       const anahtar = hucreAnahtari(gun, satir);
-      const deger = formData.get(anahtar);
+      const deger = gelen[anahtar];
       if (typeof deger !== "string" || deger === "") continue;
       if (!gecerliDersler.has(deger)) {
-        return { error: "Programda tanımlı olmayan bir ders var. Sayfayı yenileyip tekrar dene." };
+        return {
+          durum: "hata",
+          mesaj: "Programda tanımlı olmayan bir ders var. Sayfayı yenileyip tekrar dene.",
+        };
       }
       hucreler[anahtar] = deger;
     }
   }
 
+  const kayitZamani = new Date().toISOString();
   const supabase = await createClient();
   const { error } = await supabase
     .from("weekly_schedule")
-    .upsert(
-      { user_id: user.id, hucreler, updated_at: new Date().toISOString() },
-      { onConflict: "user_id" },
-    );
+    .upsert({ user_id: user.id, hucreler, updated_at: kayitZamani }, { onConflict: "user_id" });
 
-  if (error) return { error: "Program kaydedilemedi. Lütfen tekrar dene." };
+  if (error) {
+    // PGRST205 = PostgREST tabloyu bulamadı. Genel bir "tekrar dene" mesajı burada
+    // yanıltıcı olurdu; tekrar denemek işe yaramaz, veritabanı kurulumu eksiktir.
+    if (error.code === "PGRST205") {
+      return {
+        durum: "hata",
+        tabloYok: true,
+        mesaj:
+          "Program tablosu veritabanında yok. Supabase panelinde SQL Editor'ı açıp " +
+          "supabase/migrations/001_haftalik_program.sql dosyasını çalıştırman gerekiyor.",
+      };
+    }
+    return { durum: "hata", mesaj: "Program kaydedilemedi. Lütfen tekrar dene." };
+  }
 
   revalidatePath("/panel/program");
-  return { ok: true, kayitZamani: new Date().toISOString() };
+  return { durum: "ok", kayitZamani };
 }

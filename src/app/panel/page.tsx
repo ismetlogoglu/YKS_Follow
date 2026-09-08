@@ -60,7 +60,7 @@ export default async function PanelSayfasi() {
   const gun = kalanGun();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto w-full max-w-3xl flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-heading">

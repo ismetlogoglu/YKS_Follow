@@ -138,28 +138,44 @@ export function programGorseliCiz(
   return canvas;
 }
 
+export type KaydetmeSonucu = "paylasildi" | "indirildi" | "iptal";
+
+/**
+ * Dokunmatik cihaz mı? Paylaşım penceresi yalnızca burada işe yarıyor.
+ *
+ * macOS'ta navigator.canShare dosya paylaşımını destekliyor ama açılan menüde
+ * "Fotoğraflara Kaydet" / "Save to Files" YOK — bunlar iOS eklentileri.
+ * Masaüstünde paylaşım penceresi açmak kullanıcıyı dosyayı kaydedemediği bir
+ * menüde bırakıyor; oradaki doğru davranış doğrudan indirmek.
+ */
+function dokunmatikCihaz(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(pointer: coarse)").matches && navigator.maxTouchPoints > 0;
+}
+
 /**
  * Görseli cihaza kaydettirir.
- * Paylaşım sayfası varsa (telefonlar) önce o denenir — "Fotoğraflara Kaydet"
- * seçeneği galeriye kaydetmenin tek güvenilir yolu; iOS Safari'de <a download>
- * dosyayı galeriye koymaz.
+ * Telefon/tablette paylaşım penceresi açılır ("Fotoğraflara Kaydet" galeriye
+ * eklemenin tek güvenilir yolu; iOS Safari'de <a download> galeriye koymaz).
+ * Masaüstünde doğrudan indirilir.
  */
 export async function programGorseliniKaydet(
   canvas: HTMLCanvasElement,
   dosyaAdi: string,
-): Promise<"paylasildi" | "indirildi"> {
+): Promise<KaydetmeSonucu> {
   const blob = await new Promise<Blob | null>((coz) => canvas.toBlob(coz, "image/png"));
   if (!blob) throw new Error("Görsel oluşturulamadı.");
 
   const dosya = new File([blob], dosyaAdi, { type: "image/png" });
 
-  if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [dosya] })) {
+  if (dokunmatikCihaz() && navigator.canShare?.({ files: [dosya] })) {
     try {
       await navigator.share({ files: [dosya], title: "Haftalık Program" });
       return "paylasildi";
     } catch (e) {
-      // Kullanıcı paylaşım sayfasını kapattıysa indirmeye düşme, sessizce çık.
-      if (e instanceof DOMException && e.name === "AbortError") return "paylasildi";
+      // Kullanıcı pencereyi kapattıysa başarı mesajı göstermek yanıltıcı olur.
+      if (e instanceof DOMException && e.name === "AbortError") return "iptal";
+      // Paylaşım başka bir sebeple çöktüyse indirmeye düş.
     }
   }
 

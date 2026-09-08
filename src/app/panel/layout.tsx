@@ -12,7 +12,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/panel" className="min-w-0">
             <Wordmark />
           </Link>
@@ -39,7 +39,8 @@ export default async function PanelLayout({ children }: LayoutProps<"/panel">) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
+      {/* 5xl: haftalık program 7 sütun olduğu için 3xl'de ders adları kesiliyordu. */}
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
     </>
   );
 }

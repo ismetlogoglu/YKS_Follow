@@ -160,6 +160,8 @@ export type ProgramDersi = { key: string; ad: string };
 const ORTAK_TYT: ProgramDersi[] = [
   { key: "p_tyt_mat", ad: "TYT Matematik" },
   { key: "p_tyt_turkce", ad: "TYT Türkçe" },
+  // Paragraf ayrı bir blok: Türkçe'nin içinde ama öğrenciler ona ayrı zaman ayırıyor.
+  { key: "p_paragraf", ad: "Paragraf" },
   { key: "p_tyt_fen", ad: "TYT Fen" },
   { key: "p_tyt_sosyal", ad: "TYT Sosyal" },
 ];

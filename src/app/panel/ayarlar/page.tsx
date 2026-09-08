@@ -19,7 +19,7 @@ export default async function AyarlarSayfasi() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="mx-auto w-full max-w-3xl flex flex-col gap-5">
       <div>
         <GeriBaglantisi href="/panel">Ana ekran</GeriBaglantisi>
         <h1 className="mt-1 text-2xl font-semibold text-heading">Ayarlar</h1>
