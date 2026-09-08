@@ -32,11 +32,13 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // getUser() süresi dolmuş token'ı tazeler; bu çağrı kaldırılırsa oturumlar
-  // sessizce düşer. getSession() sunucuda doğrulanmadığı için kullanılmıyor.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims(): JWT imzasını projenin ES256 açık anahtarıyla YEREL doğrular ve
+  // süresi dolmuş token'ı refresh token ile tazeler. getUser() ise her istekte
+  // Supabase'e gidiyordu — proxy her isteğe (prefetch'ler dahil) girdiği için
+  // bu tek başına gezinmedeki en büyük gecikme kaynağıydı.
+  // getSession() kullanılmıyor: o, çerezi doğrulamadan olduğu gibi güvenir.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims?.sub ? claims.claims : null;
 
   const { pathname } = request.nextUrl;
 

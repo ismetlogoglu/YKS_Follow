@@ -97,6 +97,18 @@ create table if not exists public.mock_exam_sections (
 create index if not exists mock_exam_sections_exam_idx on public.mock_exam_sections (mock_exam_id);
 
 -- ---------------------------------------------------------------------------
+-- 4b) HAFTALIK PROGRAM
+--     7 gün x 3 satır = 21 hücre. Ayrı satırlar yerine tek jsonb: program hep
+--     bir bütün olarak okunup yazılıyor, 21 satırlık tablo boşuna karmaşa olurdu.
+--     Anahtar biçimi "<gun>-<satir>", örn. "0-2" = Pazartesi 3. satır.
+-- ---------------------------------------------------------------------------
+create table if not exists public.weekly_schedule (
+  user_id     uuid primary key references auth.users (id) on delete cascade,
+  hucreler    jsonb not null default '{}'::jsonb,
+  updated_at  timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------------
 -- 5) DENEME TOPLAMLARI GÖRÜNÜMÜ
 --    security_invoker: görünümü sorgulayan kullanıcının RLS kuralları geçerli olur.
 -- ---------------------------------------------------------------------------
@@ -176,6 +188,19 @@ alter table public.net_targets        enable row level security;
 alter table public.study_logs         enable row level security;
 alter table public.mock_exams         enable row level security;
 alter table public.mock_exam_sections enable row level security;
+alter table public.weekly_schedule    enable row level security;
+
+-- weekly_schedule -----------------------------------------------------------
+drop policy if exists "program_oku" on public.weekly_schedule;
+create policy "program_oku" on public.weekly_schedule
+  for select to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "program_yaz" on public.weekly_schedule;
+create policy "program_yaz" on public.weekly_schedule
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 
 -- profiles ------------------------------------------------------------------
 drop policy if exists "profil_oku" on public.profiles;

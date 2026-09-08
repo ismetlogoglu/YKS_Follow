@@ -6,6 +6,10 @@ Sıfırdan çalışır hale getirmek ~15 dakika. Sırayla git.
 > çalıştırıldı (1–4. adımlar tamam). Sende kalanlar: **5. adım** (kendini admin yap) ve
 > **8. adım** (Redirect URL'ler — bu eksikse e-posta doğrulama linki geri dönemez).
 > Aşağısı sıfırdan kuracak biri için tam referans.
+>
+> ⚠️ **Haftalık program için yeni tablo gerekiyor.** Supabase > SQL Editor'da
+> [`supabase/migrations/001_haftalik_program.sql`](supabase/migrations/001_haftalik_program.sql)
+> dosyasını çalıştır. Bu yapılmadan program sayfası kaydetmez.
 
 ---
 

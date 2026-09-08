@@ -71,7 +71,11 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
 2. Her girişte ana ekranda **iki buton**: *Günlük çözülen soru sayısını gir* ve
    *Deneme sonucu gir*.
 3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.
-   Grafik ve analiz öğrenciye gösterilmez.
+   Deneme sayfasında ayrıca **son 10 denemesinin net grafiğini** ve son 10
+   ortalamasını hedef netleriyle karşılaştıran tabloyu görür.
+4. **Haftalık programım**: pazartesiden pazara, her gün 3 blok. Her hücrede alanına
+   uygun ders seçilir, program kaydedilir ve istenirse görsel olarak indirilir
+   (telefonda paylaşım sayfası üzerinden galeriye kaydedilebilir).
 
 **Eğitmen** — `/admin`, öğrenci odaklı:
 
@@ -106,9 +110,13 @@ zemini bilerek beyaz: şeffaf bırakılsa koyu sekme temalarında lacivert harfl
 
 ## Performans notları
 
+- Kimlik doğrulaması `getClaims()` ile yapılıyor, `getUser()` ile değil. Proje ES256
+  asimetrik anahtar kullandığı için JWT imzası **yerel** doğrulanıyor; `getUser()`
+  her çağrıda Supabase'e gidiyordu. Proxy her isteğe (link prefetch'leri dahil)
+  girdiğinden bu, gezinmedeki en büyük gecikme kaynağıydı.
 - `oturum()` (`src/lib/db.ts`) React `cache()` ile sarılı. Öncesinde layout ve page
-  ayrı ayrı `getUser()` + profil sorgusu yapıyordu; her sayfa görüntülemesi 4 ayrı
-  Supabase gidiş-dönüşü demekti. Şimdi istek başına bir kez.
+  ayrı ayrı sorgu yapıyordu; her sayfa görüntülemesi 4 ayrı Supabase gidiş-dönüşü
+  demekti. Şimdi istek başına tek profil sorgusu kalıyor.
 - Her rota segmentinde `loading.tsx` var — geçişlerde iskelet ekran anında görünür.
 - Uzun sürebilen bağlantılarda `useLinkStatus` ile spinner
   (`src/components/yuklenen-baglanti.tsx`), form gönderimlerinde `useFormStatus`.

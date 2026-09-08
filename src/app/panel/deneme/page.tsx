@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
 import { DenemeFormu } from "@/components/deneme-formu";
 import { SilButonu } from "@/components/sil-butonu";
-import { Badge, Card, CardHeader, EmptyState, GeriBaglantisi } from "@/components/ui";
-import { gerekliProfil, type DenemeDers, type DenemeToplam } from "@/lib/db";
+import { NetTrendGrafigi } from "@/components/grafikler";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  GeriBaglantisi,
+  TableWrap,
+  Td,
+  Th,
+} from "@/components/ui";
+import { gerekliProfil, hedefNetler, type DenemeDers, type DenemeToplam } from "@/lib/db";
+import { denemeOzeti, hedefKarsilastirma, netTrendi } from "@/lib/istatistik";
 import { dersAdi, dersSirasi, netYaz, tarihYaz } from "@/lib/yks";
 import { denemeSil } from "./actions";
 
@@ -11,12 +22,15 @@ export const metadata: Metadata = { title: "Denemeler" };
 export default async function DenemeSayfasi() {
   const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
 
-  const { data: denemeVerisi } = await supabase
-    .from("mock_exam_totals")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("tarih", { ascending: false })
-    .limit(50);
+  const [{ data: denemeVerisi }, hedefler] = await Promise.all([
+    supabase
+      .from("mock_exam_totals")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("tarih", { ascending: false })
+      .limit(50),
+    hedefNetler(user.id),
+  ]);
 
   const denemeler = (denemeVerisi ?? []) as DenemeToplam[];
 
@@ -38,6 +52,15 @@ export default async function DenemeSayfasi() {
     else bolumHaritasi.set(b.mock_exam_id, [b]);
   }
 
+  // Grafik ve hedef tablosu son 10 denemeye bakar; her sınav türü kendi içinde
+  // sayılır ki çok TYT az AYT giren öğrencide AYT tarafı boş kalmasın.
+  const sonOn = (["TYT", "AYT"] as const).flatMap((sinav) =>
+    denemeler.filter((d) => d.sinav === sinav).slice(0, 10),
+  );
+  const trend = netTrendi(sonOn);
+  const karsilastirma = hedefKarsilastirma(hedefler, sonOn, bolumler, 10);
+  const ozet = (["TYT", "AYT"] as const).map((s) => denemeOzeti(denemeler, s, 10));
+
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -49,6 +72,101 @@ export default async function DenemeSayfasi() {
       </div>
 
       <DenemeFormu alan={profil.alan!} />
+
+      {denemeler.length > 0 && (
+        <>
+          <Card>
+            <CardHeader
+              title="Son 10 denemenin net grafiği"
+              description="TYT düz çizgi, AYT kesikli çizgi"
+            />
+            <NetTrendGrafigi veri={trend} />
+            <div className="grid gap-px border-t border-line bg-line sm:grid-cols-2">
+              {ozet.map((o) => (
+                <div key={o.sinav} className="flex items-center gap-4 bg-surface px-4 py-3">
+                  <Badge tone={o.sinav === "TYT" ? "tyt" : "ayt"}>{o.sinav}</Badge>
+                  <span className="text-sm text-muted-ink">
+                    Son 10 ortalaman{" "}
+                    <span className="tabular font-semibold text-heading">
+                      {netYaz(o.sonNOrtalama)}
+                    </span>
+                    {o.enIyi !== null && (
+                      <>
+                        {" "}
+                        · en iyin{" "}
+                        <span className="tabular font-semibold text-success">
+                          {netYaz(o.enIyi)}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Hedeflerine ne kadar yakınsın?"
+              description="Son 10 denemenin ders ortalaması, hedef netinle karşılaştırılıyor."
+            />
+            {karsilastirma.length === 0 ? (
+              <EmptyState
+                title="Hedef net tanımlı değil"
+                description="Ayarlar sayfasından her ders için hedef netini belirleyebilirsin."
+              />
+            ) : (
+              <TableWrap>
+                <thead>
+                  <tr>
+                    <Th>Sınav</Th>
+                    <Th>Ders</Th>
+                    <Th className="text-right">Hedefin</Th>
+                    <Th className="text-right">Son 10 ort.</Th>
+                    <Th className="text-right">Fark</Th>
+                    <Th>Durum</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {karsilastirma.map((s) => (
+                    <tr
+                      key={`${s.sinav}-${s.ders}`}
+                      className="transition-colors duration-200 hover:bg-canvas"
+                    >
+                      <Td>
+                        <Badge tone={s.sinav === "TYT" ? "tyt" : "ayt"}>{s.sinav}</Badge>
+                      </Td>
+                      <Td className="font-medium text-heading">{dersAdi(s.ders)}</Td>
+                      <Td className="tabular text-right">{netYaz(s.hedef)}</Td>
+                      <Td className="tabular text-right">{netYaz(s.mevcut)}</Td>
+                      <Td
+                        className={`tabular text-right font-semibold ${
+                          s.fark === null
+                            ? "text-muted-ink"
+                            : s.fark >= 0
+                              ? "text-success"
+                              : "text-danger"
+                        }`}
+                      >
+                        {s.fark === null ? "—" : `${s.fark > 0 ? "+" : ""}${netYaz(s.fark)}`}
+                      </Td>
+                      <Td className="text-muted-ink">
+                        {s.fark === null ? (
+                          "Bu dersten deneme verisi yok"
+                        ) : s.fark >= 0 ? (
+                          <Badge tone="success">Hedefte</Badge>
+                        ) : (
+                          <Badge tone="warn">{netYaz(Math.abs(s.fark))} net eksik</Badge>
+                        )}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </TableWrap>
+            )}
+          </Card>
+        </>
+      )}
 
       <Card>
         <CardHeader

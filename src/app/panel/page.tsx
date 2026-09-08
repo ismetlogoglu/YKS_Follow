@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CalendarDays, ClipboardList, PenLine } from "lucide-react";
+import { CalendarDays, CalendarRange, ClipboardList, PenLine } from "lucide-react";
 import { YuklenenBaglanti } from "@/components/yuklenen-baglanti";
 import { gerekliProfil } from "@/lib/db";
 import { kalanGun } from "@/lib/istatistik";
@@ -22,7 +22,20 @@ const SECENEKLER = [
     aciklama: "Her ders için doğru ve yanlış; netler otomatik hesaplanır.",
     ton: "ikincil" as const,
   },
+  {
+    href: "/panel/program" as const,
+    Icon: CalendarRange,
+    baslik: "Haftalık programım",
+    aciklama: "Pazartesiden pazara üç blok; kaydet, istersen görsel olarak indir.",
+    ton: "sakin" as const,
+  },
 ];
+
+const TON_SINIFI = {
+  birincil: "border-primary bg-primary text-on-primary hover:bg-primary-hover",
+  ikincil: "border-accent bg-accent text-on-accent hover:brightness-95",
+  sakin: "border-line-strong bg-surface text-heading hover:border-primary hover:bg-muted",
+} as const;
 
 export default async function PanelSayfasi() {
   const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
@@ -77,11 +90,7 @@ export default async function PanelSayfasi() {
             key={href}
             href={href}
             gostergeEtiketi={`${baslik} açılıyor`}
-            className={`flex items-center gap-4 rounded-[10px] border-2 px-5 py-6 transition-colors duration-200 ${
-              ton === "birincil"
-                ? "border-primary bg-primary text-on-primary hover:bg-primary-hover"
-                : "border-accent bg-accent text-on-accent hover:brightness-95"
-            }`}
+            className={`flex items-center gap-4 rounded-[10px] border-2 px-5 py-6 transition-colors duration-200 ${TON_SINIFI[ton]}`}
           >
             <Icon className="h-8 w-8 shrink-0" aria-hidden="true" />
             <span className="min-w-0 flex-1">

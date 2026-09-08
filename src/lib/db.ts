@@ -78,19 +78,21 @@ export type DenemeDers = {
 export const oturum = cache(async function oturum() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() imzayı ES256 açık anahtarla yerel doğrular; getUser() gibi her
+  // seferinde Supabase'e gitmez. Veri erişimi zaten RLS ile korunuyor, bu çağrı
+  // yalnızca "kim bu istek" sorusunu yanıtlıyor.
+  const { data } = await supabase.auth.getClaims();
+  const kullaniciId = data?.claims?.sub;
 
-  if (!user) return { supabase, user: null, profil: null };
+  if (!kullaniciId) return { supabase, user: null, profil: null };
 
   const { data: profil } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", kullaniciId)
     .maybeSingle<Profil>();
 
-  return { supabase, user, profil };
+  return { supabase, user: { id: kullaniciId }, profil };
 });
 
 /**

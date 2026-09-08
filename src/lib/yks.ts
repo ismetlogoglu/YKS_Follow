@@ -133,6 +133,85 @@ const DERS_SIRASI: Record<string, number> = Object.fromEntries(
   [...new Set(TUM_DERSLER_DUZ.map((d) => d.key))].map((key, i) => [key, i]),
 );
 
+/* -------------------------------------------------------------------------- */
+/*  Haftalık program                                                          */
+/* -------------------------------------------------------------------------- */
+
+export const GUNLER = [
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+  "Pazar",
+] as const;
+
+/** Her gün için kaç blok planlanıyor. */
+export const PROGRAM_SATIR = 3;
+
+export type ProgramDersi = { key: string; ad: string };
+
+/**
+ * Program hücrelerinde seçilebilen dersler. Bu liste kasten günlük soru
+ * girişindeki listeden ayrı: program blok planı olduğu için AYT sosyal dersleri
+ * tek başlıkta toplanır, ders çalışma dışı bloklar (Deneme, Tekrar) da yer alır.
+ */
+const ORTAK_TYT: ProgramDersi[] = [
+  { key: "p_tyt_mat", ad: "TYT Matematik" },
+  { key: "p_tyt_turkce", ad: "TYT Türkçe" },
+  { key: "p_tyt_fen", ad: "TYT Fen" },
+  { key: "p_tyt_sosyal", ad: "TYT Sosyal" },
+];
+
+const ORTAK_SON: ProgramDersi[] = [
+  { key: "p_deneme", ad: "Deneme" },
+  { key: "p_tekrar", ad: "Tekrar" },
+];
+
+export const PROGRAM_DERSLERI: Record<Alan, ProgramDersi[]> = {
+  SAY: [
+    ...ORTAK_TYT,
+    { key: "p_ayt_mat", ad: "AYT Matematik" },
+    { key: "p_geometri", ad: "Geometri" },
+    { key: "p_fizik2", ad: "Fizik-2" },
+    { key: "p_kimya2", ad: "Kimya-2" },
+    { key: "p_biyoloji2", ad: "Biyoloji-2" },
+    ...ORTAK_SON,
+  ],
+  EA: [
+    ...ORTAK_TYT,
+    { key: "p_ayt_mat", ad: "AYT Matematik" },
+    { key: "p_geometri", ad: "Geometri" },
+    { key: "p_ayt_edebiyat", ad: "AYT Edebiyat" },
+    { key: "p_sos2", ad: "Sosyal-2" },
+    ...ORTAK_SON,
+  ],
+  SOZ: [
+    ...ORTAK_TYT,
+    { key: "p_ayt_edebiyat", ad: "AYT Edebiyat" },
+    { key: "p_sos1", ad: "Sosyal-1" },
+    { key: "p_sos2", ad: "Sosyal-2" },
+    ...ORTAK_SON,
+  ],
+};
+
+const PROGRAM_ADLARI: Record<string, string> = Object.fromEntries(
+  [...PROGRAM_DERSLERI.SAY, ...PROGRAM_DERSLERI.EA, ...PROGRAM_DERSLERI.SOZ].map((d) => [
+    d.key,
+    d.ad,
+  ]),
+);
+
+export function programDersAdi(key: string): string {
+  return PROGRAM_ADLARI[key] ?? "";
+}
+
+/** Hücre anahtarı: "<gun>-<satir>". Gün 0 = Pazartesi. */
+export function hucreAnahtari(gun: number, satir: number): string {
+  return `${gun}-${satir}`;
+}
+
 export function dersSirasi(key: string): number {
   return DERS_SIRASI[key] ?? Number.MAX_SAFE_INTEGER;
 }
