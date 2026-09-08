@@ -73,12 +73,33 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
 3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.
    Grafik ve analiz öğrenciye gösterilmez.
 
-**Eğitmen** — `/admin`:
+**Eğitmen** — `/admin`, öğrenci odaklı:
 
-- Genel metrikler, haftalık toplam soru ve deneme net ortalaması grafikleri
-- Öğrenci tablosu; isme tıklayınca **öğrenci detayı** (`/admin/ogrenci/[id]`): net trendi,
-  haftalık soru/süre grafikleri, hedef-mevcut karşılaştırması, ders dağılımı ve tüm kayıtlar
-- Tarih aralığı filtresi ve Excel (.xlsx) dışa aktarma
+Ana ekran her öğrenci için bir kart gösterir: son 10 TYT ve AYT net ortalaması, genel
+ortalama ve en iyi net, seçili aralıktaki soru/süre/deneme, kaç dersin hedefte kaç dersin
+geride olduğu ve toplam net açığı, gidişat (ilk denemelere göre yükseliş/düşüş), son
+aktivite tarihi.
+
+Karttaki isme tıklayınca **öğrenci detayı** (`/admin/ogrenci/[id]`): TYT/AYT net özeti
+(son 10, genel, en iyi, son deneme), net trendi, haftalık soru ve süre grafikleri, ders
+bazlı haftalık soru grafiği, son 10 denemeye göre hedef-mevcut karşılaştırması, ders
+dağılımı, tüm denemeler ve tüm günlük kayıtlar.
+
+Tarih aralığı filtresi soru/süre/deneme sayılarını etkiler; **net ortalamaları her zaman
+tüm denemeler üzerinden** hesaplanır — "son 10 deneme", seçili aralıkta 2 deneme varsa
+2 denemenin ortalaması olmamalı. Excel (.xlsx) dışa aktarma da aynı ekranda.
+
+## Performans notları
+
+- `oturum()` (`src/lib/db.ts`) React `cache()` ile sarılı. Öncesinde layout ve page
+  ayrı ayrı `getUser()` + profil sorgusu yapıyordu; her sayfa görüntülemesi 4 ayrı
+  Supabase gidiş-dönüşü demekti. Şimdi istek başına bir kez.
+- Her rota segmentinde `loading.tsx` var — geçişlerde iskelet ekran anında görünür.
+- Uzun sürebilen bağlantılarda `useLinkStatus` ile spinner
+  (`src/components/yuklenen-baglanti.tsx`), form gönderimlerinde `useFormStatus`.
+- Fira Sans yalnızca kullanılan 4 ağırlıkla yükleniyor; Fira Code tek bir satır için
+  tüm aileyi indirdiğinden kaldırıldı, yerine sistem monosu.
+- Recharts sadece `/admin` rotalarında; öğrenci sayfaları grafik paketi indirmez.
 
 ## Teknik
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Alan, SinavTuru } from "@/lib/yks";
@@ -68,6 +69,31 @@ export type DenemeDers = {
  * Kurulumu tamamlamamış kullanıcıyı /kurulum'a yollar (kurulum sayfasının kendisi hariç).
  */
 /**
+ * Oturum + profil, istek başına bir kez.
+ *
+ * cache() burada kritik: layout ve page aynı isteği ayrı ayrı yapıyordu, yani
+ * her sayfa görüntülemesi 4 ayrı Supabase gidiş-dönüşü demekti (2 getUser +
+ * 2 profil sorgusu). Şimdi ilk çağrı ağa gidiyor, kalanlar aynı sonucu alıyor.
+ */
+export const oturum = cache(async function oturum() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { supabase, user: null, profil: null };
+
+  const { data: profil } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle<Profil>();
+
+  return { supabase, user, profil };
+});
+
+/**
  * Oturumu doğrular ve profili getirir.
  *
  * `adminiYonlendir`: eğitmen öğrenci ekranlarına düşmesin diye /admin'e yollar.
@@ -78,18 +104,9 @@ export async function gerekliProfil(
   opts: { kurulumZorunlu?: boolean; adminiYonlendir?: boolean } = {},
 ) {
   const { kurulumZorunlu = true, adminiYonlendir = false } = opts;
-  const supabase = await createClient();
+  const { supabase, user, profil } = await oturum();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   if (!user) redirect("/giris");
-
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profil>();
 
   if (adminiYonlendir && profil?.is_admin) {
     redirect("/admin");
@@ -102,11 +119,13 @@ export async function gerekliProfil(
   return { supabase, user, profil: profil as Profil };
 }
 
-export async function hedefNetler(userId: string): Promise<HedefNet[]> {
+export const hedefNetler = cache(async function hedefNetler(
+  userId: string,
+): Promise<HedefNet[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("net_targets")
     .select("sinav, ders, hedef_net")
     .eq("user_id", userId);
   return (data ?? []) as HedefNet[];
-}
+});

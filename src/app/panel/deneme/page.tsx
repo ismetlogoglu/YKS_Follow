@@ -59,7 +59,7 @@ export default async function DenemeSayfasi() {
         {denemeler.length === 0 ? (
           <EmptyState
             title="Henüz deneme yok"
-            description="İlk denemeni kaydettiğinde net trendi grafiği Gelişim sekmesinde oluşmaya başlar."
+            description="İlk denemeni kaydettiğinde ders bazlı netlerinle birlikte burada listelenir."
           />
         ) : (
           <ul className="divide-y divide-line">
@@ -75,9 +75,6 @@ export default async function DenemeSayfasi() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge tone={d.sinav === "TYT" ? "tyt" : "ayt"}>{d.sinav}</Badge>
                         <span className="font-medium text-heading">{d.ad}</span>
-                        {d.yayin && (
-                          <span className="text-sm text-muted-ink">· {d.yayin}</span>
-                        )}
                       </div>
                       <p className="tabular mt-0.5 text-sm text-muted-ink">
                         {tarihYaz(d.tarih)} · {d.toplam_dogru} doğru · {d.toplam_yanlis} yanlış ·{" "}

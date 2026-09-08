@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseAyarlari } from "./ayarlar";
@@ -5,8 +6,10 @@ import { supabaseAyarlari } from "./ayarlar";
 /**
  * Server Component / Server Action / Route Handler istemcisi.
  * Next 16'da cookies() asenkron olduğu için bu fonksiyon await edilmelidir.
+ *
+ * cache(): aynı istek içinde kaç kez çağrılırsa çağrılsın tek istemci kurulur.
  */
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
   const { url, anonKey } = supabaseAyarlari();
 
@@ -27,4 +30,4 @@ export async function createClient() {
       },
     },
   });
-}
+});

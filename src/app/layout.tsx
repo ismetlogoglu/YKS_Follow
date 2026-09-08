@@ -1,19 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Fira_Sans, Fira_Code } from "next/font/google";
+import { Fira_Sans } from "next/font/google";
 import { SayiKorumasi } from "@/components/sayi-korumasi";
 import "./globals.css";
 
+// Yalnızca gerçekten kullanılan ağırlıklar indirilir. 300 hiçbir yerde yok,
+// Fira Code de tek bir satır için tüm aileyi indiriyordu — sistem monosu yeterli.
 const firaSans = Fira_Sans({
   variable: "--font-fira-sans",
   subsets: ["latin", "latin-ext"],
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-});
-
-const firaCode = Fira_Code({
-  variable: "--font-fira-code",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -36,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="tr"
-      className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}
+      className={`${firaSans.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <SayiKorumasi />

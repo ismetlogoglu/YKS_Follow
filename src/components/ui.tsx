@@ -48,6 +48,51 @@ export function Button({
   );
 }
 
+/** Dönen halka. Hareket kısıtlıysa dönmez; durumu her zaman yanındaki metin taşır. */
+export function Spinner({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className={cn("h-4 w-4 animate-spin", className)}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+      <path
+        d="M8 1.5A6.5 6.5 0 0 1 14.5 8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** İçerik yüklenirken yerini tutan gri blok — layout kaymasını önler. */
+export function Iskelet({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} aria-hidden="true" />;
+}
+
+/**
+ * Sayfa geçişlerinde gösterilen iskelet. Ekran okuyucular için tek bir
+ * "yükleniyor" duyurusu yapar; görsel olarak sayfanın kaba şeklini verir.
+ */
+export function SayfaIskeleti({ satir = 3 }: { satir?: number }) {
+  return (
+    <div className="flex flex-col gap-5" role="status" aria-live="polite">
+      <span className="sr-only">Sayfa yükleniyor…</span>
+      <div className="flex flex-col gap-2">
+        <Iskelet className="h-7 w-56" />
+        <Iskelet className="h-4 w-80 max-w-full" />
+      </div>
+      {Array.from({ length: satir }, (_, i) => (
+        <Iskelet key={i} className="h-36 w-full" />
+      ))}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Form alanları                                                             */
 /* -------------------------------------------------------------------------- */

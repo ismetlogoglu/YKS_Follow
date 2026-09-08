@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { calismaEkle, type KayitState } from "@/app/panel/soru/actions";
 import { bugun, calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
-import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cn } from "./ui";
+import { Alert, Button, Card, CardHeader, Field, Input, Select, Spinner, Textarea, cn } from "./ui";
 
 const BOS: KayitState = {};
 
@@ -52,6 +52,7 @@ function KaydetButonu() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" disabled={pending} aria-busy={pending}>
+      {pending && <Spinner />}
       {pending ? "Kaydediliyor…" : "Kaydet"}
     </Button>
   );

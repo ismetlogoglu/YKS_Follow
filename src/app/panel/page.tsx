@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CalendarDays, ClipboardList, PenLine } from "lucide-react";
+import { YuklenenBaglanti } from "@/components/yuklenen-baglanti";
 import { gerekliProfil } from "@/lib/db";
 import { kalanGun } from "@/lib/istatistik";
 import { SINAV_TARIHI, bugun, tarihYaz } from "@/lib/yks";
@@ -73,21 +73,22 @@ export default async function PanelSayfasi() {
 
       <div className="grid gap-4">
         {SECENEKLER.map(({ href, Icon, baslik, aciklama, ton }) => (
-          <Link
+          <YuklenenBaglanti
             key={href}
             href={href}
-            className={`group flex items-center gap-4 rounded-[10px] border-2 px-5 py-6 transition-colors duration-200 ${
+            gostergeEtiketi={`${baslik} açılıyor`}
+            className={`flex items-center gap-4 rounded-[10px] border-2 px-5 py-6 transition-colors duration-200 ${
               ton === "birincil"
                 ? "border-primary bg-primary text-on-primary hover:bg-primary-hover"
                 : "border-accent bg-accent text-on-accent hover:brightness-95"
             }`}
           >
             <Icon className="h-8 w-8 shrink-0" aria-hidden="true" />
-            <span className="min-w-0">
+            <span className="min-w-0 flex-1">
               <span className="block text-lg leading-snug font-semibold">{baslik}</span>
               <span className="mt-0.5 block text-sm opacity-90">{aciklama}</span>
             </span>
-          </Link>
+          </YuklenenBaglanti>
         ))}
       </div>
     </div>

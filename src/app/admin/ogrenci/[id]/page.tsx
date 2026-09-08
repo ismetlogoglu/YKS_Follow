@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CalendarDays } from "lucide-react";
 import {
+  DersBazliHaftalikGrafigi,
   DersDagilimGrafigi,
   HaftalikSoruGrafigi,
   HaftalikSureGrafigi,
@@ -19,8 +20,25 @@ import {
   Th,
 } from "@/components/ui";
 import { ogrenciVerisi } from "@/lib/admin";
-import { dersDagilimi, haftalikOzet, hedefKarsilastirma, kalanGun, netTrendi } from "@/lib/istatistik";
-import { ALAN_ADI, SINAV_TARIHI, dersAdi, kisaTarih, netYaz, tarihYaz, verim } from "@/lib/yks";
+import {
+  dersBazliHaftalik,
+  dersDagilimi,
+  denemeOzeti,
+  haftalikOzet,
+  hedefKarsilastirma,
+  kalanGun,
+  netTrendi,
+} from "@/lib/istatistik";
+import {
+  ALAN_ADI,
+  SINAV_TARIHI,
+  bugun,
+  dersAdi,
+  kisaTarih,
+  netYaz,
+  tarihYaz,
+  verim,
+} from "@/lib/yks";
 
 const HAFTA_SAYISI = 12;
 
@@ -36,11 +54,29 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
   const haftalar = haftalikOzet(kayitlar, denemeler, HAFTA_SAYISI);
   const trend = netTrendi(denemeler);
   const dagilim = dersDagilimi(kayitlar);
+  const dersHaftalik = dersBazliHaftalik(kayitlar, HAFTA_SAYISI);
   const karsilastirma = hedefKarsilastirma(hedefler, denemeler, bolumler);
+  const tytOzet = denemeOzeti(denemeler, "TYT");
+  const aytOzet = denemeOzeti(denemeler, "AYT");
   const gun = kalanGun();
 
   const toplamSoru = kayitlar.reduce((t, k) => t + k.soru, 0);
   const toplamSure = kayitlar.reduce((t, k) => t + (k.sure_dk ?? 0), 0);
+
+  // İlk kayıttan bugüne geçen gün sayısına böl — çalışılmayan günler de sayılır,
+  // "kayıt girilen gün başına" ortalaması gerçek tempoyu gizlerdi.
+  const tarihler = kayitlar.map((k) => k.tarih).sort();
+  const gecenGun =
+    tarihler.length === 0
+      ? 0
+      : Math.max(
+          1,
+          Math.round(
+            (Date.parse(`${bugun()}T00:00:00Z`) - Date.parse(`${tarihler[0]}T00:00:00Z`)) /
+              86_400_000,
+          ) + 1,
+        );
+  const gunlukOrtalama = gecenGun === 0 ? "—" : Math.round(toplamSoru / gecenGun).toString();
 
   const sonNet = (sinav: "TYT" | "AYT") => {
     const liste = denemeler.filter((d) => d.sinav === sinav);
@@ -85,7 +121,35 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <Card>
+        <CardHeader
+          title="Deneme net özeti"
+          description="Son 10 ortalaması gidişatı, genel ortalama tüm geçmişi gösterir."
+        />
+        <div className="grid gap-px bg-line sm:grid-cols-2">
+          {([tytOzet, aytOzet] as const).map((o) => (
+            <div key={o.sinav} className="bg-surface p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Badge tone={o.sinav === "TYT" ? "tyt" : "ayt"}>{o.sinav}</Badge>
+                <span className="text-sm text-muted-ink">{o.adet} deneme</span>
+                {o.degisim !== null && o.degisim !== 0 && (
+                  <Badge tone={o.degisim > 0 ? "success" : "danger"}>
+                    {o.degisim > 0 ? "▲" : "▼"} {netYaz(Math.abs(o.degisim))} net
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Stat label="Son 10 ort." value={netYaz(o.sonNOrtalama)} tone="accent" />
+                <Stat label="Genel ort." value={netYaz(o.genelOrtalama)} />
+                <Stat label="En iyi" value={netYaz(o.enIyi)} tone="success" />
+                <Stat label="Son deneme" value={netYaz(sonNet(o.sinav))} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-3">
         <Stat label="Toplam soru" value={toplamSoru.toLocaleString("tr-TR")} />
         <Stat
           label="Toplam süre"
@@ -93,9 +157,12 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
           unit="saat"
           sub={`${kayitlar.length} çalışma bloğu`}
         />
-        <Stat label="Deneme" value={denemeler.length} />
-        <Stat label="Son TYT net" value={netYaz(sonNet("TYT"))} tone="accent" />
-        <Stat label="Son AYT net" value={netYaz(sonNet("AYT"))} tone="accent" />
+        <Stat
+          label="Günlük ortalama"
+          value={gunlukOrtalama}
+          unit="soru"
+          sub="ilk kayıttan bugüne"
+        />
       </div>
 
       <Card>
@@ -116,8 +183,16 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
 
       <Card>
         <CardHeader
+          title="Ders bazlı haftalık soru"
+          description={`Son ${HAFTA_SAYISI} hafta · en çok çalışılan 6 ders ayrı, kalanlar "Diğer"`}
+        />
+        <DersBazliHaftalikGrafigi veri={dersHaftalik.veri} dersAdlari={dersHaftalik.dersAdlari} />
+      </Card>
+
+      <Card>
+        <CardHeader
           title="Hedef netlere ne kadar yakın?"
-          description="Mevcut ortalama, her sınavın son 3 denemesinden hesaplanır."
+          description="Mevcut ortalama, her sınavın son 10 denemesinden hesaplanır."
         />
         {karsilastirma.length === 0 ? (
           <EmptyState title="Hedef net tanımlanmamış" />
@@ -197,7 +272,6 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
                   </Td>
                   <Td className="font-medium text-heading">
                     {d.ad}
-                    {d.yayin && <span className="ml-1 text-xs text-muted-ink">· {d.yayin}</span>}
                   </Td>
                   <Td className="tabular text-right text-muted-ink">{d.toplam_dogru}</Td>
                   <Td className="tabular text-right text-muted-ink">{d.toplam_yanlis}</Td>

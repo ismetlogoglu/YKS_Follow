@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { girisYap, kayitOl, googleIleGiris, type AuthState } from "@/app/auth/actions";
-import { Alert, Button, Field, Input } from "./ui";
+import { Alert, Button, Field, Input, Spinner } from "./ui";
 
 const BOS: AuthState = {};
 
@@ -12,6 +12,7 @@ function GonderButonu({ children }: { children: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending} aria-busy={pending}>
+      {pending && <Spinner />}
       {pending ? "Gönderiliyor…" : children}
     </Button>
   );
@@ -46,6 +47,7 @@ function GoogleButonu() {
           d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58Z"
         />
       </svg>
+      {pending && <Spinner />}
       {pending ? "Yönlendiriliyor…" : "Google ile devam et"}
     </Button>
   );

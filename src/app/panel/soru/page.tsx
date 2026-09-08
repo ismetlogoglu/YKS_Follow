@@ -55,7 +55,7 @@ export default async function SoruSayfasi() {
         {kayitlar.length === 0 ? (
           <EmptyState
             title="Henüz kayıt yok"
-            description="Yukarıdaki formu doldurup ilk çalışmanı kaydet; grafikler ilk kayıttan sonra oluşmaya başlar."
+            description="Yukarıdaki formu doldurup ilk çalışmanı kaydet. Kaydettiklerin burada listelenir."
           />
         ) : (
           <TableWrap>

@@ -156,6 +156,59 @@ export function NetTrendGrafigi({ veri }: { veri: NetNoktasi[] }) {
   );
 }
 
+/**
+ * Ders bazlı haftalık soru — yığılmış sütun.
+ * Renkler mavi→turuncu ekseninde ayrık seçildi; bitişik dilimler hem tonda hem
+ * parlaklıkta ayrışsın diye sırayla değil, atlayarak uygulanıyor.
+ */
+const DERS_RENKLERI = [
+  "#1e40af",
+  "#b45309",
+  "#0e7490",
+  "#7c3aed",
+  "#15803d",
+  "#be123c",
+  "#64748b",
+];
+
+export function DersBazliHaftalikGrafigi({
+  veri,
+  dersAdlari,
+}: {
+  veri: Record<string, string | number>[];
+  dersAdlari: string[];
+}) {
+  if (dersAdlari.length === 0) {
+    return <Bos mesaj="Henüz soru kaydı yok. Ders bazlı dağılım ilk girişten sonra oluşur." />;
+  }
+
+  return (
+    <div className="h-72 w-full p-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={veri} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+          <CartesianGrid stroke={RENK.izgara} vertical={false} />
+          <XAxis dataKey="hafta" tick={EKSEN} tickLine={false} axisLine={{ stroke: RENK.izgara }} />
+          <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} />
+          <Tooltip
+            content={<Kutu birim="soru" />}
+            cursor={{ fill: RENK.izgara, fillOpacity: 0.5 }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+          {dersAdlari.map((ad, i) => (
+            <Bar
+              key={ad}
+              dataKey={ad}
+              stackId="ders"
+              fill={DERS_RENKLERI[i % DERS_RENKLERI.length]}
+              radius={i === dersAdlari.length - 1 ? [3, 3, 0, 0] : undefined}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export function DersDagilimGrafigi({ veri }: { veri: { ders: string; soru: number }[] }) {
   if (veri.length === 0) return <Bos mesaj="Henüz soru kaydı yok." />;
 

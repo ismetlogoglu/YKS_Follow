@@ -2,7 +2,7 @@
 
 import { Trash } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { Button } from "./ui";
+import { Button, Spinner } from "./ui";
 
 function Ikon({ etiket }: { etiket: string }) {
   const { pending } = useFormStatus();
@@ -16,8 +16,8 @@ function Ikon({ etiket }: { etiket: string }) {
       aria-busy={pending}
       title={etiket}
     >
-      <Trash className="h-4 w-4" aria-hidden="true" />
-      <span className="sr-only">{etiket}</span>
+      {pending ? <Spinner /> : <Trash className="h-4 w-4" aria-hidden="true" />}
+      <span className="sr-only">{pending ? "Siliniyor…" : etiket}</span>
     </Button>
   );
 }

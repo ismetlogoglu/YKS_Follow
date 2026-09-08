@@ -20,7 +20,8 @@
   --color-line: #dbeafe;
   --color-line-strong: #cbd5e1;
 
-  --color-danger: #dc2626;
+  /* red-700. Bir üst ton (#dc2626) soft zeminde rozet olarak 4,41:1 kalıyordu. */
+  --color-danger: #b91c1c;
   --color-danger-soft: #fef2f2;
   --color-success: #15803d;
   --color-success-soft: #f0fdf4;
@@ -32,7 +33,7 @@
 
 @theme inline {
   --font-sans: var(--font-fira-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-fira-code), ui-monospace, SFMono-Regular, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 :root {

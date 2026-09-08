@@ -2,6 +2,7 @@ import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet } from "./db";
 import {
   SINAV_TARIHI,
   bugun,
+  dersAdi,
   dersSirasi,
   haftaBasi,
   isoTarih,
@@ -93,6 +94,52 @@ export function netTrendi(denemeler: DenemeToplam[]): NetNoktasi[] {
     }));
 }
 
+export type DenemeOzeti = {
+  sinav: SinavTuru;
+  adet: number;
+  sonNOrtalama: number | null;
+  genelOrtalama: number | null;
+  enIyi: number | null;
+  ilkNOrtalama: number | null;
+  /** Son N ortalaması ile ilk N ortalaması arasındaki fark — gidişat. */
+  degisim: number | null;
+};
+
+/**
+ * Bir sınav türü için deneme net özeti: son N ortalaması, tüm zamanlar
+ * ortalaması, en iyi net ve baştan sona değişim.
+ */
+export function denemeOzeti(
+  denemeler: DenemeToplam[],
+  sinav: SinavTuru,
+  sonN = 10,
+): DenemeOzeti {
+  const netler = denemeler
+    .filter((d) => d.sinav === sinav)
+    .sort((a, b) => a.tarih.localeCompare(b.tarih))
+    .map((d) => Number(d.toplam_net));
+
+  const ort = (a: number[]) =>
+    a.length === 0 ? null : Math.round((a.reduce((t, v) => t + v, 0) / a.length) * 100) / 100;
+
+  const son = netler.slice(-sonN);
+  const sonOrt = ort(son);
+  // Karşılaştırma için aynı büyüklükte bir ilk dilim al; tek deneme varsa anlamsız.
+  const ilk = netler.length > son.length ? netler.slice(0, Math.min(sonN, netler.length - son.length)) : [];
+  const ilkOrt = ort(ilk);
+
+  return {
+    sinav,
+    adet: netler.length,
+    sonNOrtalama: sonOrt,
+    genelOrtalama: ort(netler),
+    enIyi: netler.length === 0 ? null : Math.max(...netler),
+    ilkNOrtalama: ilkOrt,
+    degisim:
+      sonOrt === null || ilkOrt === null ? null : Math.round((sonOrt - ilkOrt) * 100) / 100,
+  };
+}
+
 export type HedefSatiri = {
   ders: string;
   sinav: SinavTuru;
@@ -104,12 +151,13 @@ export type HedefSatiri = {
 /**
  * Excel'deki "Hedef" sayfasının Mevcut Ort. / Fark sütunları.
  * Mevcut = son `sonN` denemedeki ders netlerinin ortalaması.
+ * Varsayılan 10: tek bir kötü deneme tabloyu yanıltmasın.
  */
 export function hedefKarsilastirma(
   hedefler: HedefNet[],
   denemeler: DenemeToplam[],
   bolumler: DenemeDers[],
-  sonN = 3,
+  sonN = 10,
 ): HedefSatiri[] {
   const sonDenemeler = new Set<string>();
   for (const sinav of ["TYT", "AYT"] as const) {
@@ -154,6 +202,50 @@ export function kalanGun(sinavTarihi: string = SINAV_TARIHI): number | null {
   if (sinavTarihi < bugunIso) return null;
   const fark = Date.parse(`${sinavTarihi}T00:00:00Z`) - Date.parse(`${bugunIso}T00:00:00Z`);
   return Math.round(fark / 86_400_000);
+}
+
+export type DersHaftaSatiri = Record<string, string | number>;
+
+/**
+ * Ders bazlı haftalık soru grafiği için yığılmış veri.
+ * En çok çalışılan `maxDers` ders ayrı ayrı, kalanlar "Diğer" altında toplanır —
+ * 11 ayrı renk okunamaz hale gelirdi.
+ */
+export function dersBazliHaftalik(
+  kayitlar: CalismaKaydi[],
+  haftaSayisi = 8,
+  maxDers = 6,
+): { veri: DersHaftaSatiri[]; dersAdlari: string[] } {
+  const enCok = dersDagilimi(kayitlar).slice(0, maxDers).map((d) => d.ders);
+  const enCokKume = new Set(enCok);
+  const digerVar = dersDagilimi(kayitlar).length > enCok.length;
+
+  const dersAdlari = [...enCok.map(dersAdi), ...(digerVar ? ["Diğer"] : [])];
+
+  const buHafta = haftaBasi(new Date());
+  const veri: DersHaftaSatiri[] = [];
+
+  for (let i = haftaSayisi - 1; i >= 0; i--) {
+    const bas = new Date(buHafta);
+    bas.setUTCDate(bas.getUTCDate() - i * 7);
+    const bit = new Date(bas);
+    bit.setUTCDate(bit.getUTCDate() + 6);
+
+    const basIso = isoTarih(bas);
+    const bitIso = isoTarih(bit);
+
+    const satir: DersHaftaSatiri = { hafta: kisaTarih(basIso) };
+    for (const ad of dersAdlari) satir[ad] = 0;
+
+    for (const k of kayitlar) {
+      if (k.tarih < basIso || k.tarih > bitIso) continue;
+      const ad = enCokKume.has(k.ders) ? dersAdi(k.ders) : "Diğer";
+      if (ad in satir) satir[ad] = (satir[ad] as number) + k.soru;
+    }
+    veri.push(satir);
+  }
+
+  return { veri, dersAdlari };
 }
 
 /** Ders bazlı toplam çözülen soru — dağılım grafiği için. */

@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { denemeEkle, type DenemeState } from "@/app/panel/deneme/actions";
 import { bugun, dersler, net, netYaz, toplamSoru, type Alan, type SinavTuru } from "@/lib/yks";
 import { SinavSecici } from "./soru-formu";
-import { Alert, Button, Card, CardHeader, Field, Input, Textarea } from "./ui";
+import { Alert, Button, Card, CardHeader, Field, Input, Spinner, Textarea } from "./ui";
 
 /**
  * Ders satırı ızgarası. Dar ekranda ders adı tam satır, altında 4 sütun;
@@ -21,6 +21,7 @@ function KaydetButonu() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" disabled={pending} aria-busy={pending}>
+      {pending && <Spinner />}
       {pending ? "Kaydediliyor…" : "Denemeyi kaydet"}
     </Button>
   );
@@ -70,11 +71,8 @@ function DenemeAlanlari({ alan }: { alan: Alan }) {
         <div className="flex items-end">
           <SinavSecici deger={sinav} onChange={setSinav} />
         </div>
-        <Field label="Deneme adı" htmlFor="d_ad" required>
+        <Field label="Deneme adı" htmlFor="d_ad" className="sm:col-span-2" required>
           <Input id="d_ad" name="ad" maxLength={120} placeholder="3D Yayınları TYT-1" required />
-        </Field>
-        <Field label="Yayın" htmlFor="d_yayin">
-          <Input id="d_yayin" name="yayin" maxLength={80} placeholder="3D" />
         </Field>
       </div>
 

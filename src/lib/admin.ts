@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { oturum } from "@/lib/db";
 import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet, Profil } from "@/lib/db";
+import { denemeOzeti, hedefKarsilastirma, type DenemeOzeti } from "@/lib/istatistik";
 import { yerelIso } from "@/lib/yks";
 
 export type OgrenciOzeti = {
   profil: Profil;
+  /** Seçili tarih aralığındaki hareket. */
   soru: number;
   sure: number;
   blok: number;
@@ -12,6 +14,14 @@ export type OgrenciOzeti = {
   tytOrt: number | null;
   aytOrt: number | null;
   sonAktivite: string | null;
+  /** Tüm zamanlar üzerinden hesaplanan net özetleri — tarih filtresinden etkilenmez. */
+  tyt: DenemeOzeti;
+  ayt: DenemeOzeti;
+  /** Hedef netlere göre durum: kaç ders hedefte, kaç ders geride, ne kadar açık. */
+  hedefte: number;
+  geride: number;
+  veriYok: number;
+  toplamAcik: number;
 };
 
 export type AdminVerisi = {
@@ -63,21 +73,10 @@ function ortalama(sayilar: number[]): number | null {
  * bu kontrol kullanıcıyı boş sayfa yerine kendi paneline yollamak için.
  */
 async function adminKapisi() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // oturum() cache'li: admin layout'u da aynı isteği yapıyor, ikinci kez ağa çıkılmaz.
+  const { supabase, user, profil } = await oturum();
   if (!user) redirect("/giris");
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle<{ is_admin: boolean }>();
-
-  if (!data?.is_admin) redirect("/panel");
-
+  if (!profil?.is_admin) redirect("/panel");
   return supabase;
 }
 
@@ -171,9 +170,40 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
     : { data: [] };
   const bolumler = (bolumVerisi ?? []) as DenemeDers[];
 
+  // Net ortalamaları tarih filtresinden bağımsız olmalı: "son 10 deneme"
+  // seçili aralıkta 2 deneme varsa 2 denemenin ortalaması olmamalı.
+  const [{ data: tumDenemeVerisi }, { data: tumHedefVerisi }] = await Promise.all([
+    supabase.from("mock_exam_totals").select("*").order("tarih"),
+    supabase.from("net_targets").select("user_id, sinav, ders, hedef_net"),
+  ]);
+  const tumDenemeler = (tumDenemeVerisi ?? []) as DenemeToplam[];
+  const tumHedefler = (tumHedefVerisi ?? []) as (HedefNet & { user_id: string })[];
+
+  const { data: tumBolumVerisi } = tumDenemeler.length
+    ? await supabase
+        .from("mock_exam_sections")
+        .select("*")
+        .in(
+          "mock_exam_id",
+          tumDenemeler.map((d) => d.id),
+        )
+    : { data: [] };
+  const tumBolumler = (tumBolumVerisi ?? []) as DenemeDers[];
+
   const ogrenciler: OgrenciOzeti[] = profiller.map((p) => {
     const kendiKayitlari = kayitlar.filter((k) => k.user_id === p.id);
     const kendiDenemeleri = denemeler.filter((d) => d.user_id === p.id);
+
+    const tumKendiDenemeleri = tumDenemeler.filter((d) => d.user_id === p.id);
+    const kendiDenemeIdleri = new Set(tumKendiDenemeleri.map((d) => d.id));
+    const kendiBolumleri = tumBolumler.filter((b) => kendiDenemeIdleri.has(b.mock_exam_id));
+    const kendiHedefleri = tumHedefler.filter((h) => h.user_id === p.id);
+
+    const karsilastirma = hedefKarsilastirma(
+      kendiHedefleri,
+      tumKendiDenemeleri,
+      kendiBolumleri,
+    );
 
     const tarihler = [
       ...kendiKayitlari.map((k) => k.tarih),
@@ -193,6 +223,17 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
         kendiDenemeleri.filter((d) => d.sinav === "AYT").map((d) => Number(d.toplam_net)),
       ),
       sonAktivite: tarihler.length ? tarihler[tarihler.length - 1] : null,
+      tyt: denemeOzeti(tumKendiDenemeleri, "TYT"),
+      ayt: denemeOzeti(tumKendiDenemeleri, "AYT"),
+      hedefte: karsilastirma.filter((s) => s.fark !== null && s.fark >= 0).length,
+      geride: karsilastirma.filter((s) => s.fark !== null && s.fark < 0).length,
+      veriYok: karsilastirma.filter((s) => s.fark === null).length,
+      toplamAcik:
+        Math.round(
+          karsilastirma
+            .filter((s) => s.fark !== null && s.fark < 0)
+            .reduce((t, s) => t + Math.abs(s.fark!), 0) * 100,
+        ) / 100,
     };
   });
 

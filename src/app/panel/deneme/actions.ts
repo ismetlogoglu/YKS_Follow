@@ -13,7 +13,6 @@ const semasi = z.object({
   tarih: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli bir tarih seç."),
   sinav: z.enum(["TYT", "AYT"]),
   ad: z.string().trim().min(1, "Deneme adını yaz.").max(120),
-  yayin: z.string().trim().max(80).optional(),
   not_metni: z.string().trim().max(500).optional(),
 });
 
@@ -33,7 +32,6 @@ export async function denemeEkle(_prev: DenemeState, formData: FormData): Promis
     tarih: metin(formData.get("tarih")),
     sinav: metin(formData.get("sinav")),
     ad: metin(formData.get("ad")),
-    yayin: metin(formData.get("yayin")) || undefined,
     not_metni: metin(formData.get("not_metni")) || undefined,
   });
 
@@ -88,7 +86,6 @@ export async function denemeEkle(_prev: DenemeState, formData: FormData): Promis
       tarih: d.tarih,
       sinav: d.sinav,
       ad: d.ad,
-      yayin: d.yayin ?? null,
       not_metni: d.not_metni ?? null,
     })
     .select("id")

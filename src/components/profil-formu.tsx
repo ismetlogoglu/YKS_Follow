@@ -12,7 +12,7 @@ import {
   varsayilanHedef,
   type Alan,
 } from "@/lib/yks";
-import { Alert, Button, Card, CardHeader, Field, Input, cn } from "./ui";
+import { Alert, Button, Card, CardHeader, Field, Input, Spinner, cn } from "./ui";
 
 const BOS: ProfilState = {};
 
@@ -29,6 +29,7 @@ function KaydetButonu({ children }: { children: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" disabled={pending} aria-busy={pending}>
+      {pending && <Spinner />}
       {pending ? "Kaydediliyor…" : children}
     </Button>
   );

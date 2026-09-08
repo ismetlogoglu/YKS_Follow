@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ClipboardList, LineChart, PenLine } from "lucide-react";
 import { Wordmark } from "@/components/brand";
 import { Button, Card } from "@/components/ui";
-import { createClient } from "@/lib/supabase/server";
+import { oturum } from "@/lib/db";
 
 const OZELLIKLER = [
   {
@@ -24,21 +24,10 @@ const OZELLIKLER = [
 ];
 
 export default async function AnaSayfa() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profil } = await oturum();
 
-  if (user) {
-    // Eğitmen ve öğrenci farklı yerlere düşer; iki panel birbirinden ayrı.
-    const { data: profil } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .maybeSingle<{ is_admin: boolean }>();
-
-    redirect(profil?.is_admin ? "/admin" : "/panel");
-  }
+  // Eğitmen ve öğrenci farklı yerlere düşer; iki panel birbirinden ayrı.
+  if (user) redirect(profil?.is_admin ? "/admin" : "/panel");
 
   return (
     <>
