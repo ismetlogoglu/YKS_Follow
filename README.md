@@ -89,6 +89,21 @@ Tarih aralığı filtresi soru/süre/deneme sayılarını etkiler; **net ortalam
 tüm denemeler üzerinden** hesaplanır — "son 10 deneme", seçili aralıkta 2 deneme varsa
 2 denemenin ortalaması olmamalı. Excel (.xlsx) dışa aktarma da aynı ekranda.
 
+## Marka varlıkları
+
+Alan adı: **www.yksfollow.com** (`metadataBase`, `src/app/layout.tsx`).
+
+| Dosya | Ne için |
+|---|---|
+| `public/logo.png` | Uygulama içi işaret — şeffaf zemin, `Logo`/`Wordmark` bileşenleri kullanır |
+| `src/app/icon.png` | Sekme ikonu (512²) — beyaz zemin, yuvarlatılmış köşe |
+| `src/app/favicon.ico` | `/favicon.ico` isteyen tarayıcılar ve yer imleri (16–256px) |
+| `src/app/apple-icon.png` | iOS ana ekran kısayolu (180²) |
+
+Kaynak logoda işaret karenin yalnızca %40'ını kaplıyordu; 16px'lik sekme ikonunda
+okunmaz hale geleceği için mürekkep sınırına kırpılıp yeniden ortalandı. Sekme ikonunun
+zemini bilerek beyaz: şeffaf bırakılsa koyu sekme temalarında lacivert harfler kaybolurdu.
+
 ## Performans notları
 
 - `oturum()` (`src/lib/db.ts`) React `cache()` ile sarılı. Öncesinde layout ve page

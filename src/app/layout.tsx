@@ -12,13 +12,29 @@ const firaSans = Fira_Sans({
   display: "swap",
 });
 
+const SITE = "https://www.yksfollow.com";
+const ACIKLAMA =
+  "Günlük çözdüğün soruyu ve deneme netlerini kaydet, hedeflerine ne kadar yaklaştığını gör.";
+
 export const metadata: Metadata = {
+  // Paylaşım görselleri ve kanonik adresler bu adrese göre çözülür.
+  metadataBase: new URL(SITE),
   title: {
     default: "YKS Takip",
     template: "%s · YKS Takip",
   },
-  description:
-    "Günlük soru çözümünü ve deneme netlerini kaydet, hedeflerine ne kadar yaklaştığını gör.",
+  description: ACIKLAMA,
+  applicationName: "YKS Takip",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: SITE,
+    siteName: "YKS Takip",
+    title: "YKS Takip",
+    description: ACIKLAMA,
+  },
+  twitter: { card: "summary", title: "YKS Takip", description: ACIKLAMA },
 };
 
 export const viewport: Viewport = {
