@@ -7,9 +7,6 @@ import {
   CardHeader,
   EmptyState,
   GeriBaglantisi,
-  Td,
-  Th,
-  TableWrap,
 } from "@/components/ui";
 import { gerekliProfil, type CalismaKaydi } from "@/lib/db";
 import { dersAdi, kisaTarih, netYaz, verim } from "@/lib/yks";
@@ -58,55 +55,73 @@ export default async function SoruSayfasi() {
             description="Yukarıdaki formu doldurup ilk çalışmanı kaydet. Kaydettiklerin burada listelenir."
           />
         ) : (
-          <TableWrap>
-            <thead>
-              <tr>
-                <Th>Tarih</Th>
-                <Th>Ders</Th>
-                <Th>Konu</Th>
-                <Th className="text-right">Soru</Th>
-                <Th className="text-right">D</Th>
-                <Th className="text-right">Y</Th>
-                <Th className="text-right">Net</Th>
-                <Th className="text-right">Süre</Th>
-                <Th className="text-right">Verim</Th>
-                <Th>
-                  <span className="sr-only">İşlem</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {kayitlar.map((k) => (
-                <tr key={k.id} className="transition-colors duration-200 hover:bg-canvas">
-                  <Td className="tabular whitespace-nowrap">{kisaTarih(k.tarih)}</Td>
-                  <Td>
-                    <span className="flex items-center gap-2">
-                      <Badge tone={k.sinav === "TYT" ? "tyt" : "ayt"}>{k.sinav}</Badge>
-                      <span className="whitespace-nowrap">{dersAdi(k.ders)}</span>
+          /* Tablo değil liste: 10 sütunluk bir tablo 375px'lik telefonda
+             yatay kaydırma gerektiriyordu ve içeriğin yarısı görünmüyordu. */
+          <ul className="divide-y divide-line">
+            {kayitlar.map((k) => (
+              <li
+                key={k.id}
+                className="flex items-start justify-between gap-3 px-4 py-3 transition-colors duration-200 hover:bg-canvas sm:px-5"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <Badge tone={k.sinav === "TYT" ? "tyt" : "ayt"}>{k.sinav}</Badge>
+                    <span className="font-medium text-heading">{dersAdi(k.ders)}</span>
+                    <span className="tabular text-sm text-muted-ink">
+                      {kisaTarih(k.tarih)}
                     </span>
-                  </Td>
-                  <Td className="max-w-[16rem] truncate text-muted-ink" title={k.konu ?? ""}>
-                    {k.konu || "—"}
-                  </Td>
-                  <Td className="tabular text-right font-medium">{k.soru}</Td>
-                  <Td className="tabular text-right text-muted-ink">{k.dogru ?? "—"}</Td>
-                  <Td className="tabular text-right text-muted-ink">{k.yanlis ?? "—"}</Td>
-                  <Td className="tabular text-right font-semibold text-heading">
-                    {netYaz(k.net === null ? null : Number(k.net))}
-                  </Td>
-                  <Td className="tabular text-right text-muted-ink">
-                    {k.sure_dk ? `${k.sure_dk} dk` : "—"}
-                  </Td>
-                  <Td className="tabular text-right text-muted-ink">
-                    {netYaz(verim(k.soru, k.sure_dk))}
-                  </Td>
-                  <Td className="text-right">
-                    <SilButonu action={calismaSil} id={k.id} etiket="Kaydı sil" />
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </TableWrap>
+                  </div>
+
+                  {k.konu && (
+                    <p className="mt-0.5 truncate text-sm text-muted-ink" title={k.konu}>
+                      {k.konu}
+                    </p>
+                  )}
+
+                  <dl className="tabular mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-ink">
+                    <span className="flex gap-1">
+                      <dt>Soru</dt>
+                      <dd className="font-semibold text-heading">{k.soru}</dd>
+                    </span>
+                    {k.dogru !== null && (
+                      <span className="flex gap-1">
+                        <dt>D</dt>
+                        <dd className="font-medium text-ink">{k.dogru}</dd>
+                      </span>
+                    )}
+                    {k.yanlis !== null && (
+                      <span className="flex gap-1">
+                        <dt>Y</dt>
+                        <dd className="font-medium text-ink">{k.yanlis}</dd>
+                      </span>
+                    )}
+                    {k.net !== null && (
+                      <span className="flex gap-1">
+                        <dt>Net</dt>
+                        <dd className="font-semibold text-heading">{netYaz(Number(k.net))}</dd>
+                      </span>
+                    )}
+                    {k.sure_dk !== null && (
+                      <span className="flex gap-1">
+                        <dt>Süre</dt>
+                        <dd className="font-medium text-ink">{k.sure_dk} dk</dd>
+                      </span>
+                    )}
+                    {verim(k.soru, k.sure_dk) !== null && (
+                      <span className="flex gap-1">
+                        <dt>Verim</dt>
+                        <dd className="font-medium text-ink">
+                          {netYaz(verim(k.soru, k.sure_dk))}/sa
+                        </dd>
+                      </span>
+                    )}
+                  </dl>
+                </div>
+
+                <SilButonu action={calismaSil} id={k.id} etiket="Kaydı sil" />
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
     </div>

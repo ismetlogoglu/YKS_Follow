@@ -8,9 +8,6 @@ import {
   CardHeader,
   EmptyState,
   GeriBaglantisi,
-  TableWrap,
-  Td,
-  Th,
 } from "@/components/ui";
 import { gerekliProfil, hedefNetler, type DenemeDers, type DenemeToplam } from "@/lib/db";
 import { denemeOzeti, hedefKarsilastirma, netTrendi } from "@/lib/istatistik";
@@ -116,53 +113,39 @@ export default async function DenemeSayfasi() {
                 description="Ayarlar sayfasından her ders için hedef netini belirleyebilirsin."
               />
             ) : (
-              <TableWrap>
-                <thead>
-                  <tr>
-                    <Th>Sınav</Th>
-                    <Th>Ders</Th>
-                    <Th className="text-right">Hedefin</Th>
-                    <Th className="text-right">Son 10 ort.</Th>
-                    <Th className="text-right">Fark</Th>
-                    <Th>Durum</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {karsilastirma.map((s) => (
-                    <tr
-                      key={`${s.sinav}-${s.ders}`}
-                      className="transition-colors duration-200 hover:bg-canvas"
-                    >
-                      <Td>
-                        <Badge tone={s.sinav === "TYT" ? "tyt" : "ayt"}>{s.sinav}</Badge>
-                      </Td>
-                      <Td className="font-medium text-heading">{dersAdi(s.ders)}</Td>
-                      <Td className="tabular text-right">{netYaz(s.hedef)}</Td>
-                      <Td className="tabular text-right">{netYaz(s.mevcut)}</Td>
-                      <Td
-                        className={`tabular text-right font-semibold ${
-                          s.fark === null
-                            ? "text-muted-ink"
-                            : s.fark >= 0
-                              ? "text-success"
-                              : "text-danger"
-                        }`}
-                      >
-                        {s.fark === null ? "—" : `${s.fark > 0 ? "+" : ""}${netYaz(s.fark)}`}
-                      </Td>
-                      <Td className="text-muted-ink">
-                        {s.fark === null ? (
-                          "Bu dersten deneme verisi yok"
-                        ) : s.fark >= 0 ? (
-                          <Badge tone="success">Hedefte</Badge>
-                        ) : (
-                          <Badge tone="warn">{netYaz(Math.abs(s.fark))} net eksik</Badge>
-                        )}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </TableWrap>
+              /* Telefonda 6 sütunluk tablo yatay kaydırma gerektiriyordu; liste
+                 her genişlikte sığıyor. */
+              <ul className="divide-y divide-line">
+                {karsilastirma.map((s) => (
+                  <li
+                    key={`${s.sinav}-${s.ders}`}
+                    className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 transition-colors duration-200 hover:bg-canvas sm:px-5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Badge tone={s.sinav === "TYT" ? "tyt" : "ayt"}>{s.sinav}</Badge>
+                      <span className="font-medium text-heading">{dersAdi(s.ders)}</span>
+                    </div>
+
+                    <dl className="tabular flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-ink">
+                      <span className="flex gap-1">
+                        <dt>Hedefin</dt>
+                        <dd className="font-semibold text-heading">{netYaz(s.hedef)}</dd>
+                      </span>
+                      <span className="flex gap-1">
+                        <dt>Son 10 ort.</dt>
+                        <dd className="font-semibold text-heading">{netYaz(s.mevcut)}</dd>
+                      </span>
+                      {s.fark === null ? (
+                        <Badge>Deneme verisi yok</Badge>
+                      ) : s.fark >= 0 ? (
+                        <Badge tone="success">Hedefte · +{netYaz(s.fark)}</Badge>
+                      ) : (
+                        <Badge tone="warn">{netYaz(Math.abs(s.fark))} net eksik</Badge>
+                      )}
+                    </dl>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
         </>

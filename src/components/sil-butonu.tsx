@@ -10,8 +10,9 @@ function Ikon({ etiket }: { etiket: string }) {
     <Button
       type="submit"
       variant="ghost"
-      size="sm"
-      className="text-muted-ink hover:bg-danger-soft hover:text-danger"
+      /* md = 44px: sm (36px) telefonda dokunma hedefi alt sınırının altında kalıyordu. */
+      size="md"
+      className="shrink-0 px-3 text-muted-ink hover:bg-danger-soft hover:text-danger"
       disabled={pending}
       aria-busy={pending}
       title={etiket}
