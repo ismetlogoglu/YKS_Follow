@@ -8,7 +8,13 @@ import { Alert, Button, Card, CardHeader, Field, Input, Select, Spinner, Textare
 
 const BOS: KayitState = {};
 
-/** TYT / AYT seçimi — görsel olarak segment, semantik olarak radyo grubu. */
+/**
+ * TYT / AYT seçimi.
+ *
+ * Gizli radyo + label yerine gerçek buton kullanılıyor: iOS Safari'de sr-only
+ * (mutlak konumlu, kırpılmış) bir input'u saran label'a dokunmak her zaman
+ * güvenilir şekilde tetiklenmiyordu. Form gönderimi için değeri gizli input taşır.
+ */
 export function SinavSecici({
   deger,
   onChange,
@@ -19,32 +25,35 @@ export function SinavSecici({
   ad?: string;
 }) {
   return (
-    <fieldset>
-      <legend className="mb-1.5 text-sm font-medium text-heading">Sınav</legend>
-      <div className="inline-flex rounded-md border border-line-strong bg-muted p-0.5">
+    <div>
+      <p id={`${ad}-etiket`} className="mb-1.5 text-sm font-medium text-heading">
+        Sınav
+      </p>
+      <input type="hidden" name={ad} value={deger} />
+      <div
+        role="radiogroup"
+        aria-labelledby={`${ad}-etiket`}
+        className="inline-flex rounded-md border border-line-strong bg-muted p-0.5"
+      >
         {(["TYT", "AYT"] as const).map((s) => (
-          <label
+          <button
             key={s}
+            type="button"
+            role="radio"
+            aria-checked={deger === s}
+            onClick={() => onChange(s)}
             className={cn(
-              "flex min-h-10 cursor-pointer items-center justify-center rounded px-6 text-sm font-medium transition-colors duration-200",
+              "flex min-h-11 cursor-pointer items-center justify-center rounded px-6 font-medium transition-colors duration-200",
               deger === s
                 ? "bg-surface text-primary shadow-[0_0_0_1px_var(--color-line-strong)]"
                 : "text-muted-ink hover:text-heading",
             )}
           >
-            <input
-              type="radio"
-              name={ad}
-              value={s}
-              checked={deger === s}
-              onChange={() => onChange(s)}
-              className="sr-only"
-            />
             {s}
-          </label>
+          </button>
         ))}
       </div>
-    </fieldset>
+    </div>
   );
 }
 

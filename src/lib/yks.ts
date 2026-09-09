@@ -86,14 +86,47 @@ export const AYT_DERSLER: Record<Alan, Ders[]> = {
   ],
 };
 
+/**
+ * Günlük çalışma kaydı için AYT dersleri.
+ *
+ * Deneme listesinden farkı Geometri: sınavda ayrı bir test değil, AYT Matematik'in
+ * 40 sorusunun içinde (~30 matematik + ~10 geometri). Ama öğrenci Geometri'yi ayrı
+ * çalışıyor ve ayrı kaydetmek istiyor. Toplamlar yine 80'de kalıyor.
+ */
+export const AYT_CALISMA_DERSLERI: Record<Alan, Ders[]> = {
+  SAY: [
+    { key: "ayt_matematik", ad: "Matematik", soru: 30 },
+    { key: "ayt_geometri", ad: "Geometri", soru: 10 },
+    { key: "ayt_fizik", ad: "Fizik", soru: 14 },
+    { key: "ayt_kimya", ad: "Kimya", soru: 13 },
+    { key: "ayt_biyoloji", ad: "Biyoloji", soru: 13 },
+  ],
+  EA: [
+    { key: "ayt_matematik", ad: "Matematik", soru: 30 },
+    { key: "ayt_geometri", ad: "Geometri", soru: 10 },
+    { key: "ayt_edebiyat", ad: "Türk Dili ve Edebiyatı", soru: 24 },
+    { key: "ayt_tarih1", ad: "Tarih-1", soru: 10 },
+    { key: "ayt_cografya1", ad: "Coğrafya-1", soru: 6 },
+  ],
+  SOZ: [
+    { key: "ayt_edebiyat", ad: "Türk Dili ve Edebiyatı", soru: 24 },
+    { key: "ayt_tarih1", ad: "Tarih-1", soru: 10 },
+    { key: "ayt_cografya1", ad: "Coğrafya-1", soru: 6 },
+    { key: "ayt_tarih2", ad: "Tarih-2", soru: 11 },
+    { key: "ayt_cografya2", ad: "Coğrafya-2", soru: 11 },
+    { key: "ayt_felsefe", ad: "Felsefe Grubu", soru: 12 },
+    { key: "ayt_din", ad: "Din Kültürü ve Ahlak Bilgisi", soru: 6 },
+  ],
+};
+
 /** Deneme girişi ve hedef netler için ders listesi. */
 export function dersler(alan: Alan, sinav: SinavTuru): Ders[] {
   return sinav === "TYT" ? TYT_DERSLER : AYT_DERSLER[alan];
 }
 
-/** Günlük soru girişi için ders listesi — TYT'de branşlara ayrılır. */
+/** Günlük soru girişi için ders listesi — branş düzeyinde. */
 export function calismaDersleri(alan: Alan, sinav: SinavTuru): Ders[] {
-  return sinav === "TYT" ? TYT_CALISMA_DERSLERI : AYT_DERSLER[alan];
+  return sinav === "TYT" ? TYT_CALISMA_DERSLERI : AYT_CALISMA_DERSLERI[alan];
 }
 
 export function tumDersler(alan: Alan): Ders[] {
@@ -110,6 +143,9 @@ const TUM_DERSLER_DUZ: Ders[] = [
   ...AYT_DERSLER.SAY,
   ...AYT_DERSLER.EA,
   ...AYT_DERSLER.SOZ,
+  ...AYT_CALISMA_DERSLERI.SAY,
+  ...AYT_CALISMA_DERSLERI.EA,
+  ...AYT_CALISMA_DERSLERI.SOZ,
 ];
 
 const TUM_DERS_ADLARI: Record<string, string> = Object.fromEntries(
@@ -186,7 +222,8 @@ export const PROGRAM_DERSLERI: Record<Alan, ProgramDersi[]> = {
     { key: "p_ayt_mat", ad: "AYT Matematik" },
     { key: "p_geometri", ad: "Geometri" },
     { key: "p_ayt_edebiyat", ad: "AYT Edebiyat" },
-    { key: "p_sos2", ad: "Sosyal-2" },
+    // EA'nın AYT sosyali Tarih-1 + Coğrafya-1'dir; Sosyal-2 bu alanda hiç yok.
+    { key: "p_sos1", ad: "AYT Sosyal" },
     ...ORTAK_SON,
   ],
   SOZ: [

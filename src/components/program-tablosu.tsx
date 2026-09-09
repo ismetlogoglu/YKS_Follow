@@ -162,7 +162,10 @@ export function ProgramTablosu({
                     /* appearance-none: yerel açılır ok her platformda farklı yer
                        kaplıyor ve ortalanmış metni kırpabiliyordu. Oku kendimiz
                        çizip sağda sabit 18px ayırıyoruz. */
-                    className="min-h-11 w-full min-w-0 cursor-pointer appearance-none truncate rounded-md border bg-[length:10px] bg-[right_6px_center] bg-no-repeat py-2 pr-[18px] pl-[6px] text-center text-[13px] font-medium transition-colors duration-200 focus:border-primary"
+                    /* text-base (16px) mobilde şart: iOS Safari 16px'ten küçük bir
+                       alana odaklanınca sayfayı otomatik yakınlaştırıyor ve geri
+                       döndürmüyor. lg'de yer dar olduğu için 13px'e iniyoruz. */
+                    className="min-h-11 w-full min-w-0 cursor-pointer appearance-none truncate rounded-md border bg-[length:10px] bg-[right_6px_center] bg-no-repeat py-2 pr-[18px] pl-[6px] text-center text-base font-medium transition-colors duration-200 focus:border-primary lg:text-[13px]"
                   >
                     <option value="">—</option>
                     {dersler.map((d) => (
