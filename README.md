@@ -15,7 +15,7 @@ ve deneme sonuçlarını girer; netler ve haftalık özetler otomatik hesaplanı
 | Deneme TYT / AYT | `/panel/deneme` — sadece D/Y girilir, net ve boş hesaplanır |
 | Haftalık Özet | Eğitmenin öğrenci detay sayfası + Excel çıktısı |
 | Konu TYT / AYT | Günlük girişteki serbest "Konu" alanı |
-| Haftalık Program | Kapsam dışı (istenmedi) |
+| Haftalık Program | `/panel/program` — 7 gün × 3 blok, kaydedilir ve görsel olarak indirilir |
 
 Net formülü her yerde aynı: **Net = Doğru − Yanlış / 4**. Bu hesap veritabanında
 `generated always as` sütunu olarak duruyor, yani uygulama koduyla veri asla çelişemez.
@@ -68,8 +68,8 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
 
 1. Kayıt → profil kurulumu (alan + TYT/AYT hedef netleri), bir kez. Sınav tarihi
    sorulmaz, sistemde sabittir.
-2. Her girişte ana ekranda **iki buton**: *Günlük çözülen soru sayısını gir* ve
-   *Deneme sonucu gir*.
+2. Her girişte ana ekranda **üç buton**: *Günlük çözülen soru sayısını gir*,
+   *Deneme sonucu gir* ve *Haftalık programım*.
 3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.
    Deneme sayfasında ayrıca **son 10 denemesinin net grafiğini** ve son 10
    ortalamasını hedef netleriyle karşılaştıran tabloyu görür.
@@ -110,19 +110,27 @@ zemini bilerek beyaz: şeffaf bırakılsa koyu sekme temalarında lacivert harfl
 
 ## Performans notları
 
-- Kimlik doğrulaması `getClaims()` ile yapılıyor, `getUser()` ile değil. Proje ES256
-  asimetrik anahtar kullandığı için JWT imzası **yerel** doğrulanıyor; `getUser()`
-  her çağrıda Supabase'e gidiyordu. Proxy her isteğe (link prefetch'leri dahil)
-  girdiğinden bu, gezinmedeki en büyük gecikme kaynağıydı.
-- `oturum()` (`src/lib/db.ts`) React `cache()` ile sarılı. Öncesinde layout ve page
-  ayrı ayrı sorgu yapıyordu; her sayfa görüntülemesi 4 ayrı Supabase gidiş-dönüşü
-  demekti. Şimdi istek başına tek profil sorgusu kalıyor.
-- Her rota segmentinde `loading.tsx` var — geçişlerde iskelet ekran anında görünür.
-- Uzun sürebilen bağlantılarda `useLinkStatus` ile spinner
-  (`src/components/yuklenen-baglanti.tsx`), form gönderimlerinde `useFormStatus`.
-- Fira Sans yalnızca kullanılan 4 ağırlıkla yükleniyor; Fira Code tek bir satır için
-  tüm aileyi indirdiğinden kaldırıldı, yerine sistem monosu.
-- Recharts sadece `/admin` rotalarında; öğrenci sayfaları grafik paketi indirmez.
+**Coğrafya en büyük etken.** Supabase projesi Seul'de (`ap-northeast-2`), öğrenciler
+Türkiye'de. Vercel varsayılan olarak fonksiyonları Washington'da (`iad1`) çalıştırıyordu;
+her sayfa isteği Türkiye → Washington → Seul → geri yolunu izliyordu ve her veritabanı
+sorgusu Washington ↔ Seul arasında ~200 ms sürüyordu.
+
+- `vercel.json` → `"regions": ["icn1"]`: sunucu kodu veritabanının yanında çalışıyor,
+  sorgu başına gecikme ~200 ms'den ~2 ms'ye iniyor. Kalıcı çözüm veritabanını
+  Frankfurt'a taşıyıp bölgeyi `fra1` yapmak — adımlar: [supabase/FRANKFURT_TASIMA.md](supabase/FRANKFURT_TASIMA.md).
+- **Her sayfa tek veritabanı turu.** `profilVeVeri()` (`src/lib/db.ts`) profil kontrolünü
+  ve sayfanın kendi sorgusunu paralel çalıştırıyor; kimlik `getClaims()` ile yerel
+  doğrulandığı için veri sorgusu profili beklemek zorunda değil.
+- **Denemeler bölümleriyle tek sorguda** (`DENEME_SECIMI`, PostgREST gömülü seçim).
+  Eskiden önce toplamlar, sonra bölümler ayrı ayrı çekiliyordu.
+- **Eğitmen paneli 5 turdan 1'e, öğrenci detayı 4 turdan 1'e** indi. "Tüm denemeler"
+  sorgusu tarih aralığındakileri de kapsadığı için aralık ayrıca sorgulanmıyor.
+- **Kaydetme aksiyonları** ağa giden `getUser()` yerine `oturum()` / `oturumKimligi()`
+  kullanıyor. Profil kaydı 4 sıralı yazmadan 1 paralel tura indi.
+- `oturum()` React `cache()` ile sarılı; layout ve page aynı profili tekrar sorgulamıyor.
+- Her rota segmentinde `loading.tsx` iskeleti, bağlantılarda `useLinkStatus`, formlarda
+  `useFormStatus` göstergesi var.
+- Recharts yalnızca `/admin` rotalarında; öğrenci sayfaları grafik paketi indirmez.
 
 ## Teknik
 
@@ -145,8 +153,8 @@ src/
     (auth)/giris, (auth)/kayit    Giriş ve kayıt
     auth/                          Server actions + OAuth callback
     kurulum/                       İlk profil kurulumu (2 adım)
-    panel/                         Öğrenci — iki butonluk giriş ekranı
-      soru/ deneme/ ayarlar/
+    panel/                         Öğrenci — üç butonluk giriş ekranı
+      soru/ deneme/ program/ ayarlar/
     admin/                         Eğitmen paneli
       ogrenci/[id]/                Öğrenci detayı: grafikler + tüm kayıtlar
       export/                      .xlsx indirme

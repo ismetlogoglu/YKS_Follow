@@ -9,7 +9,14 @@ import {
   EmptyState,
   GeriBaglantisi,
 } from "@/components/ui";
-import { gerekliProfil, hedefNetler, type DenemeDers, type DenemeToplam } from "@/lib/db";
+import {
+  DENEME_SECIMI,
+  denemeleriAc,
+  hedefNetler,
+  profilVeVeri,
+  type DenemeDers,
+  type DenemeSatiri,
+} from "@/lib/db";
 import { denemeOzeti, hedefKarsilastirma, netTrendi } from "@/lib/istatistik";
 import { dersAdi, dersSirasi, netYaz, tarihYaz } from "@/lib/yks";
 import { denemeSil } from "./actions";
@@ -17,31 +24,25 @@ import { denemeSil } from "./actions";
 export const metadata: Metadata = { title: "Denemeler" };
 
 export default async function DenemeSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
+  // Profil, denemeler (bölümleriyle gömülü) ve hedefler tek turda, paralel.
+  const {
+    profil,
+    veri: [{ data: denemeVerisi }, hedefler],
+  } = await profilVeVeri({ adminiYonlendir: true }, (kimlik, supabase) =>
+    Promise.all([
+      supabase
+        .from("mock_exams")
+        .select(DENEME_SECIMI)
+        .eq("user_id", kimlik)
+        .order("tarih", { ascending: false })
+        .limit(50),
+      hedefNetler(kimlik),
+    ]),
+  );
 
-  const [{ data: denemeVerisi }, hedefler] = await Promise.all([
-    supabase
-      .from("mock_exam_totals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("tarih", { ascending: false })
-      .limit(50),
-    hedefNetler(user.id),
-  ]);
-
-  const denemeler = (denemeVerisi ?? []) as DenemeToplam[];
-
-  const { data: bolumVerisi } = denemeler.length
-    ? await supabase
-        .from("mock_exam_sections")
-        .select("*")
-        .in(
-          "mock_exam_id",
-          denemeler.map((d) => d.id),
-        )
-    : { data: [] };
-
-  const bolumler = (bolumVerisi ?? []) as DenemeDers[];
+  const { denemeler, bolumler } = denemeleriAc(
+    (denemeVerisi ?? []) as unknown as DenemeSatiri[],
+  );
   const bolumHaritasi = new Map<string, DenemeDers[]>();
   for (const b of bolumler) {
     const mevcut = bolumHaritasi.get(b.mock_exam_id);

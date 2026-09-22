@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { oturum } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
+import { DENEME_SECIMI, denemeleriAc, oturum, type DenemeSatiri } from "@/lib/db";
 import type { CalismaKaydi, DenemeDers, DenemeToplam, HedefNet, Profil } from "@/lib/db";
 import { denemeOzeti, hedefKarsilastirma, type DenemeOzeti } from "@/lib/istatistik";
 import { yerelIso } from "@/lib/yks";
@@ -88,45 +89,40 @@ export type OgrenciDetayi = {
   hedefler: HedefNet[];
 };
 
-/** Tek bir öğrencinin tüm verisi — eğitmenin detay sayfası için. */
+/**
+ * Tek bir öğrencinin tüm verisi — eğitmenin detay sayfası için.
+ *
+ * Yetki kontrolü dahil her şey tek turda, paralel. Eskiden yetki → profil →
+ * veriler → bölümler sırayla bekleniyordu (4 tur). adminKapisi yönlendirirse
+ * diğer sonuçlar atılır; RLS zaten eğitmen olmayana başkasının verisini vermez.
+ */
 export async function ogrenciVerisi(userId: string): Promise<OgrenciDetayi | null> {
-  const supabase = await adminKapisi();
+  const supabase = await createClient();
 
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle<Profil>();
-
-  if (!profil) return null;
-
-  const [calismaSonuc, denemeSonuc, hedefSonuc] = await Promise.all([
+  const [, profilSonuc, calismaSonuc, denemeSonuc, hedefSonuc] = await Promise.all([
+    adminKapisi(),
+    supabase.from("profiles").select("*").eq("id", userId).maybeSingle<Profil>(),
     supabase
       .from("study_logs")
       .select("*")
       .eq("user_id", userId)
       .order("tarih", { ascending: false }),
-    supabase.from("mock_exam_totals").select("*").eq("user_id", userId).order("tarih"),
+    supabase.from("mock_exams").select(DENEME_SECIMI).eq("user_id", userId).order("tarih"),
     supabase.from("net_targets").select("sinav, ders, hedef_net").eq("user_id", userId),
   ]);
 
-  const denemeler = (denemeSonuc.data ?? []) as DenemeToplam[];
+  const profil = profilSonuc.data;
+  if (!profil) return null;
 
-  const { data: bolumVerisi } = denemeler.length
-    ? await supabase
-        .from("mock_exam_sections")
-        .select("*")
-        .in(
-          "mock_exam_id",
-          denemeler.map((d) => d.id),
-        )
-    : { data: [] };
+  const { denemeler, bolumler } = denemeleriAc(
+    (denemeSonuc.data ?? []) as unknown as DenemeSatiri[],
+  );
 
   return {
     profil,
     kayitlar: (calismaSonuc.data ?? []) as CalismaKaydi[],
     denemeler,
-    bolumler: (bolumVerisi ?? []) as DenemeDers[],
+    bolumler,
     hedefler: (hedefSonuc.data ?? []) as HedefNet[],
   };
 }
@@ -136,9 +132,14 @@ export async function ogrenciVerisi(userId: string): Promise<OgrenciDetayi | nul
  * Erişim RLS'teki is_admin() politikasıyla korunur; burada ayrıca bayrak kontrol edilir.
  */
 export async function adminVerisi(baslangic: string, bitis: string): Promise<AdminVerisi> {
-  const supabase = await adminKapisi();
+  const supabase = await createClient();
 
-  const [profilSonuc, calismaSonuc, denemeSonuc] = await Promise.all([
+  // Her şey tek turda. Eskiden 5 sıralı tur vardı: yetki → (profiller, kayıtlar,
+  // aralıktaki denemeler) → onların bölümleri → (tüm denemeler, hedefler) → tüm
+  // bölümler. Denemeler artık bölümleriyle gömülü tek sorguda geliyor ve "tüm
+  // denemeler" aralıktakileri zaten kapsadığı için aralık ayrıca sorgulanmıyor.
+  const [, profilSonuc, calismaSonuc, denemeSonuc, hedefSonuc] = await Promise.all([
+    adminKapisi(),
     supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     supabase
       .from("study_logs")
@@ -146,49 +147,27 @@ export async function adminVerisi(baslangic: string, bitis: string): Promise<Adm
       .gte("tarih", baslangic)
       .lte("tarih", bitis)
       .order("tarih", { ascending: false }),
-    supabase
-      .from("mock_exam_totals")
-      .select("*")
-      .gte("tarih", baslangic)
-      .lte("tarih", bitis)
-      .order("tarih", { ascending: false }),
+    supabase.from("mock_exams").select(DENEME_SECIMI).order("tarih"),
+    supabase.from("net_targets").select("user_id, sinav, ders, hedef_net"),
   ]);
 
   // Eğitmen hesapları öğrenci listesinde görünmemeli.
   const profiller = ((profilSonuc.data ?? []) as Profil[]).filter((p) => !p.is_admin);
   const kayitlar = (calismaSonuc.data ?? []) as CalismaKaydi[];
-  const denemeler = (denemeSonuc.data ?? []) as DenemeToplam[];
-
-  const { data: bolumVerisi } = denemeler.length
-    ? await supabase
-        .from("mock_exam_sections")
-        .select("*")
-        .in(
-          "mock_exam_id",
-          denemeler.map((d) => d.id),
-        )
-    : { data: [] };
-  const bolumler = (bolumVerisi ?? []) as DenemeDers[];
 
   // Net ortalamaları tarih filtresinden bağımsız olmalı: "son 10 deneme"
   // seçili aralıkta 2 deneme varsa 2 denemenin ortalaması olmamalı.
-  const [{ data: tumDenemeVerisi }, { data: tumHedefVerisi }] = await Promise.all([
-    supabase.from("mock_exam_totals").select("*").order("tarih"),
-    supabase.from("net_targets").select("user_id, sinav, ders, hedef_net"),
-  ]);
-  const tumDenemeler = (tumDenemeVerisi ?? []) as DenemeToplam[];
-  const tumHedefler = (tumHedefVerisi ?? []) as (HedefNet & { user_id: string })[];
+  const { denemeler: tumDenemeler, bolumler: tumBolumler } = denemeleriAc(
+    (denemeSonuc.data ?? []) as unknown as DenemeSatiri[],
+  );
+  const tumHedefler = (hedefSonuc.data ?? []) as (HedefNet & { user_id: string })[];
 
-  const { data: tumBolumVerisi } = tumDenemeler.length
-    ? await supabase
-        .from("mock_exam_sections")
-        .select("*")
-        .in(
-          "mock_exam_id",
-          tumDenemeler.map((d) => d.id),
-        )
-    : { data: [] };
-  const tumBolumler = (tumBolumVerisi ?? []) as DenemeDers[];
+  // Aralıktaki denemeler (en yeniden eskiye) — aralık sayıları ve Excel çıktısı için.
+  const denemeler = tumDenemeler
+    .filter((d) => d.tarih >= baslangic && d.tarih <= bitis)
+    .reverse();
+  const aralikIdleri = new Set(denemeler.map((d) => d.id));
+  const bolumler = tumBolumler.filter((b) => aralikIdleri.has(b.mock_exam_id));
 
   const ogrenciler: OgrenciOzeti[] = profiller.map((p) => {
     const kendiKayitlari = kayitlar.filter((k) => k.user_id === p.id);

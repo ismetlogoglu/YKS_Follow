@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { ProfilFormu, type ProfilBaslangic } from "@/components/profil-formu";
 import { Alert, GeriBaglantisi } from "@/components/ui";
-import { gerekliProfil, hedefNetler } from "@/lib/db";
+import { hedefNetler, profilVeVeri } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Ayarlar" };
 
 export default async function AyarlarSayfasi() {
-  const { user, profil } = await gerekliProfil({ adminiYonlendir: true });
-  const hedefler = await hedefNetler(user.id);
+  const { profil, veri: hedefler } = await profilVeVeri({ adminiYonlendir: true }, (kimlik) =>
+    hedefNetler(kimlik),
+  );
 
   const baslangic: ProfilBaslangic = {
     adSoyad: profil.ad_soyad ?? "",

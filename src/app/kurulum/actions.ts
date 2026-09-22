@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { oturumKimligi } from "@/lib/db";
 import { SINAV_TARIHI, dersler, type Alan } from "@/lib/yks";
 
 export type ProfilState = { error?: string; ok?: boolean };
@@ -40,31 +41,11 @@ export async function profilKaydet(
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const kimlik = await oturumKimligi();
+  if (!kimlik) redirect("/giris");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/giris");
 
   const alan = parsed.data.alan as Alan;
-
-  const { error: profilHatasi } = await supabase
-    .from("profiles")
-    .update({
-      ad_soyad: parsed.data.adSoyad,
-      alan,
-      hedef_universite: parsed.data.hedefUniversite ?? null,
-      hedef_bolum: parsed.data.hedefBolum ?? null,
-      hedef_siralama: parsed.data.hedefSiralama,
-      // sinav_tarihi artık sorulmuyor; SINAV_TARIHI sabiti herkes için geçerli.
-      sinav_tarihi: SINAV_TARIHI,
-      kurulum_tamam: true,
-    })
-    .eq("id", user.id);
-
-  if (profilHatasi) {
-    return { error: "Profil kaydedilemedi. Lütfen tekrar dene." };
-  }
 
   // Hedef netler: alan değişmişse artık geçerli olmayan dersleri temizle.
   const gecerliDersler = [...dersler(alan, "TYT"), ...dersler(alan, "AYT")];
@@ -72,22 +53,36 @@ export async function profilKaydet(
     const sinav = d.key.startsWith("tyt_") ? "TYT" : "AYT";
     const ham = Number(formData.get(`hedef_${d.key}`));
     const hedef = Number.isFinite(ham) ? Math.min(Math.max(ham, 0), d.soru) : 0;
-    return { user_id: user.id, sinav, ders: d.key, hedef_net: hedef };
+    return { user_id: kimlik, sinav, ders: d.key, hedef_net: hedef };
   });
 
-  const { error: hedefHatasi } = await supabase
-    .from("net_targets")
-    .upsert(satirlar, { onConflict: "user_id,sinav,ders" });
+  // Üç yazma birbirinden bağımsız (profil / güncel hedefler / artık geçersiz
+  // hedefler ayrık satırlara dokunuyor), bu yüzden sırayla değil aynı anda.
+  // Eskiden getUser + 3 sıralı yazma = 4 tur; şimdi tek tur.
+  const [{ error: profilHatasi }, { error: hedefHatasi }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .update({
+        ad_soyad: parsed.data.adSoyad,
+        alan,
+        hedef_universite: parsed.data.hedefUniversite ?? null,
+        hedef_bolum: parsed.data.hedefBolum ?? null,
+        hedef_siralama: parsed.data.hedefSiralama,
+        // sinav_tarihi artık sorulmuyor; SINAV_TARIHI sabiti herkes için geçerli.
+        sinav_tarihi: SINAV_TARIHI,
+        kurulum_tamam: true,
+      })
+      .eq("id", kimlik),
+    supabase.from("net_targets").upsert(satirlar, { onConflict: "user_id,sinav,ders" }),
+    supabase
+      .from("net_targets")
+      .delete()
+      .eq("user_id", kimlik)
+      .not("ders", "in", `(${gecerliDersler.map((d) => d.key).join(",")})`),
+  ]);
 
-  if (hedefHatasi) {
-    return { error: "Net hedefleri kaydedilemedi. Lütfen tekrar dene." };
-  }
-
-  await supabase
-    .from("net_targets")
-    .delete()
-    .eq("user_id", user.id)
-    .not("ders", "in", `(${gecerliDersler.map((d) => d.key).join(",")})`);
+  if (profilHatasi) return { error: "Profil kaydedilemedi. Lütfen tekrar dene." };
+  if (hedefHatasi) return { error: "Net hedefleri kaydedilemedi. Lütfen tekrar dene." };
 
   revalidatePath("/panel", "layout");
 

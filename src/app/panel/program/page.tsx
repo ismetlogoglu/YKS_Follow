@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import { ProgramTablosu } from "@/components/program-tablosu";
 import { GeriBaglantisi } from "@/components/ui";
-import { gerekliProfil } from "@/lib/db";
+import { profilVeVeri } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Haftalık programım" };
 
 export default async function ProgramSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
-
-  const { data, error } = await supabase
-    .from("weekly_schedule")
-    .select("hucreler, updated_at")
-    .eq("user_id", user.id)
-    .maybeSingle<{ hucreler: Record<string, string>; updated_at: string }>();
+  const {
+    profil,
+    veri: { data, error },
+  } = await profilVeVeri({ adminiYonlendir: true }, (kimlik, supabase) =>
+    supabase
+      .from("weekly_schedule")
+      .select("hucreler, updated_at")
+      .eq("user_id", kimlik)
+      .maybeSingle<{ hucreler: Record<string, string>; updated_at: string }>(),
+  );
 
   // Tablo hiç kurulmamışsa sayfa yine açılsın ama kullanıcı sebebini görsün.
   const tabloYok = error?.code === "PGRST205";

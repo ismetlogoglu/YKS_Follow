@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { calismaDersleri, type Alan } from "@/lib/yks";
+import { oturum, oturumKimligi } from "@/lib/db";
+import { calismaDersleri } from "@/lib/yks";
 import { enGecTarih } from "@/lib/tarih";
 
 /** `token` her başarılı kayıtta değişir; form alanları bu değere göre sıfırlanır. */
@@ -61,17 +62,10 @@ export async function calismaEkle(_prev: KayitState, formData: FormData): Promis
     return { error: "İleri bir tarihe kayıt giremezsin." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // oturum(): kimlik yerel doğrulanır, alan bilgisi tek profil sorgusuyla gelir.
+  // Eskiden getUser() + ayrı bir alan sorgusu vardı: iki sıralı tur.
+  const { supabase, user, profil } = await oturum();
   if (!user) return { error: "Oturumun düşmüş görünüyor. Tekrar giriş yap." };
-
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("alan")
-    .eq("id", user.id)
-    .maybeSingle<{ alan: Alan | null }>();
 
   if (!profil?.alan) return { error: "Önce profil kurulumunu tamamla." };
 
@@ -105,13 +99,11 @@ export async function calismaSil(formData: FormData) {
   const id = metin(formData.get("id"));
   if (!id) return;
 
+  const kimlik = await oturumKimligi();
+  if (!kimlik) return;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
 
   // RLS zaten sahipliği zorunlu kılıyor; user_id filtresi ikinci bir emniyet.
-  await supabase.from("study_logs").delete().eq("id", id).eq("user_id", user.id);
+  await supabase.from("study_logs").delete().eq("id", id).eq("user_id", kimlik);
   revalidatePath("/panel", "layout");
 }

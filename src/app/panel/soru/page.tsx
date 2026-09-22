@@ -8,22 +8,25 @@ import {
   EmptyState,
   GeriBaglantisi,
 } from "@/components/ui";
-import { gerekliProfil, type CalismaKaydi } from "@/lib/db";
+import { profilVeVeri, type CalismaKaydi } from "@/lib/db";
 import { dersAdi, kisaTarih, netYaz, verim } from "@/lib/yks";
 import { calismaSil } from "./actions";
 
 export const metadata: Metadata = { title: "Soru girişi" };
 
 export default async function SoruSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
-
-  const { data } = await supabase
-    .from("study_logs")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("tarih", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const {
+    profil,
+    veri: { data },
+  } = await profilVeVeri({ adminiYonlendir: true }, (kimlik, supabase) =>
+    supabase
+      .from("study_logs")
+      .select("*")
+      .eq("user_id", kimlik)
+      .order("tarih", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(50),
+  );
 
   const kayitlar = (data ?? []) as CalismaKaydi[];
 

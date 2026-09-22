@@ -65,24 +65,27 @@ export type DenemeDers = {
 };
 
 /**
- * Oturumu doğrular ve profili getirir.
- * Kurulumu tamamlamamış kullanıcıyı /kurulum'a yollar (kurulum sayfasının kendisi hariç).
+ * İsteği yapan kullanıcının kimliği — ağa çıkmadan.
+ *
+ * getClaims() JWT imzasını projenin ES256 açık anahtarıyla yerel doğrular (anahtar
+ * modül düzeyinde 10 dk önbellekte). Bu sayede sayfalar veri sorgusunu profil
+ * sorgusunu BEKLEMEDEN başlatabiliyor: ikisi paralel gidiyor, tek tur sürüyor.
  */
+export const oturumKimligi = cache(async function oturumKimligi(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.sub ?? null;
+});
+
 /**
  * Oturum + profil, istek başına bir kez.
  *
- * cache() burada kritik: layout ve page aynı isteği ayrı ayrı yapıyordu, yani
- * her sayfa görüntülemesi 4 ayrı Supabase gidiş-dönüşü demekti (2 getUser +
- * 2 profil sorgusu). Şimdi ilk çağrı ağa gidiyor, kalanlar aynı sonucu alıyor.
+ * cache(): layout ve page aynı isteği ayrı ayrı yapıyordu; artık ilk çağrı ağa
+ * gidiyor, kalanlar aynı sonucu alıyor.
  */
 export const oturum = cache(async function oturum() {
   const supabase = await createClient();
-
-  // getClaims() imzayı ES256 açık anahtarla yerel doğrular; getUser() gibi her
-  // seferinde Supabase'e gitmez. Veri erişimi zaten RLS ile korunuyor, bu çağrı
-  // yalnızca "kim bu istek" sorusunu yanıtlıyor.
-  const { data } = await supabase.auth.getClaims();
-  const kullaniciId = data?.claims?.sub;
+  const kullaniciId = await oturumKimligi();
 
   if (!kullaniciId) return { supabase, user: null, profil: null };
 
@@ -121,6 +124,30 @@ export async function gerekliProfil(
   return { supabase, user, profil: profil as Profil };
 }
 
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Sayfanın profil kontrolünü ve kendi veri sorgusunu AYNI ANDA çalıştırır.
+ *
+ * Eskiden sayfa önce profili bekliyor, sonra verisini soruyordu: iki sıralı tur.
+ * Kimlik yerel doğrulandığı için veri sorgusu profili beklemek zorunda değil.
+ * Profil kontrolü yönlendirme yaparsa veri sonucu atılır; RLS zaten kullanıcının
+ * görmemesi gereken hiçbir satırı döndürmez.
+ */
+export async function profilVeVeri<T>(
+  opts: Parameters<typeof gerekliProfil>[0],
+  veri: (kimlik: string, supabase: Supabase) => PromiseLike<T>,
+) {
+  const kimlik = await oturumKimligi();
+  if (!kimlik) redirect("/giris");
+  const supabase = await createClient();
+  const [profilSonucu, veriSonucu] = await Promise.all([
+    gerekliProfil(opts),
+    veri(kimlik, supabase),
+  ]);
+  return { ...profilSonucu, veri: veriSonucu };
+}
+
 export const hedefNetler = cache(async function hedefNetler(
   userId: string,
 ): Promise<HedefNet[]> {
@@ -131,3 +158,49 @@ export const hedefNetler = cache(async function hedefNetler(
     .eq("user_id", userId);
   return (data ?? []) as HedefNet[];
 });
+
+/** mock_exams satırı + gömülü mock_exam_sections. */
+export type DenemeSatiri = Pick<
+  DenemeToplam,
+  "id" | "user_id" | "tarih" | "sinav" | "ad" | "yayin" | "not_metni"
+> & { mock_exam_sections: DenemeDers[] | null };
+
+/** PostgREST gömülü seçim: deneme ve bölümleri tek istekte. */
+export const DENEME_SECIMI =
+  "id, user_id, tarih, sinav, ad, yayin, not_metni, mock_exam_sections(*)";
+
+/**
+ * Gömülü sorgu sonucunu sayfaların kullandığı iki listeye açar ve toplamları
+ * hesaplar (mock_exam_totals görünümüyle aynı formül).
+ *
+ * Eskiden önce görünüm, ardından bölümler `.in(ids)` ile ayrıca sorgulanıyordu:
+ * ikinci sorgu birincinin sonucunu beklediği için iki sıralı tur. Veritabanı
+ * uzaktayken her tur yüzlerce milisaniye demek.
+ */
+export function denemeleriAc(satirlar: DenemeSatiri[]): {
+  denemeler: DenemeToplam[];
+  bolumler: DenemeDers[];
+} {
+  const denemeler: DenemeToplam[] = [];
+  const bolumler: DenemeDers[] = [];
+
+  for (const { mock_exam_sections, ...d } of satirlar) {
+    const b = mock_exam_sections ?? [];
+    const dogru = b.reduce((t, x) => t + x.dogru, 0);
+    const yanlis = b.reduce((t, x) => t + x.yanlis, 0);
+    const soru = b.reduce((t, x) => t + x.soru_sayisi, 0);
+    const net = b.reduce((t, x) => t + Number(x.net), 0);
+
+    denemeler.push({
+      ...d,
+      toplam_dogru: dogru,
+      toplam_yanlis: yanlis,
+      toplam_soru: soru,
+      toplam_bos: soru - dogru - yanlis,
+      toplam_net: Math.round(net * 100) / 100,
+    });
+    bolumler.push(...b);
+  }
+
+  return { denemeler, bolumler };
+}

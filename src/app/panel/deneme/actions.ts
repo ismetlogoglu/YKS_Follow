@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { dersler, type Alan } from "@/lib/yks";
+import { oturum, oturumKimligi } from "@/lib/db";
+import { dersler } from "@/lib/yks";
 import { enGecTarih } from "@/lib/tarih";
 
 /** `token` her başarılı kayıtta değişir; form alanları bu değere göre sıfırlanır. */
@@ -42,17 +43,10 @@ export async function denemeEkle(_prev: DenemeState, formData: FormData): Promis
     return { error: "İleri bir tarihe deneme giremezsin." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // oturum(): kimlik yerel doğrulanır, alan bilgisi tek profil sorgusuyla gelir.
+  // Eskiden getUser() + ayrı bir alan sorgusu vardı: iki sıralı tur.
+  const { supabase, user, profil } = await oturum();
   if (!user) return { error: "Oturumun düşmüş görünüyor. Tekrar giriş yap." };
-
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("alan")
-    .eq("id", user.id)
-    .maybeSingle<{ alan: Alan | null }>();
 
   if (!profil?.alan) return { error: "Önce profil kurulumunu tamamla." };
 
@@ -111,13 +105,11 @@ export async function denemeSil(formData: FormData) {
   const id = metin(formData.get("id"));
   if (!id) return;
 
+  const kimlik = await oturumKimligi();
+  if (!kimlik) return;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
 
   // mock_exam_sections satırları ON DELETE CASCADE ile birlikte silinir.
-  await supabase.from("mock_exams").delete().eq("id", id).eq("user_id", user.id);
+  await supabase.from("mock_exams").delete().eq("id", id).eq("user_id", kimlik);
   revalidatePath("/panel", "layout");
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarDays, CalendarRange, ClipboardList, PenLine } from "lucide-react";
 import { YuklenenBaglanti } from "@/components/yuklenen-baglanti";
-import { gerekliProfil } from "@/lib/db";
+import { profilVeVeri } from "@/lib/db";
 import { kalanGun } from "@/lib/istatistik";
 import { SINAV_TARIHI, bugun, tarihYaz } from "@/lib/yks";
 
@@ -38,22 +38,25 @@ const TON_SINIFI = {
 } as const;
 
 export default async function PanelSayfasi() {
-  const { supabase, user, profil } = await gerekliProfil({ adminiYonlendir: true });
-
   // Tek amaç öğrenciye bugün kayıt girip girmediğini hatırlatmak.
   const bugunIso = bugun();
-  const [{ count: soruSayisi }, { count: denemeSayisi }] = await Promise.all([
-    supabase
-      .from("study_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("tarih", bugunIso),
-    supabase
-      .from("mock_exams")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("tarih", bugunIso),
-  ]);
+  const {
+    profil,
+    veri: [{ count: soruSayisi }, { count: denemeSayisi }],
+  } = await profilVeVeri({ adminiYonlendir: true }, (kimlik, supabase) =>
+    Promise.all([
+      supabase
+        .from("study_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", kimlik)
+        .eq("tarih", bugunIso),
+      supabase
+        .from("mock_exams")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", kimlik)
+        .eq("tarih", bugunIso),
+    ]),
+  );
 
   const ilkAd = (profil.ad_soyad ?? "").split(" ")[0];
   const bugunToplam = (soruSayisi ?? 0) + (denemeSayisi ?? 0);

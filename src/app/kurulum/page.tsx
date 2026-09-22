@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import { Wordmark } from "@/components/brand";
 import { ProfilFormu, type ProfilBaslangic } from "@/components/profil-formu";
-import { gerekliProfil, hedefNetler } from "@/lib/db";
+import { hedefNetler, profilVeVeri } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Profil kurulumu" };
 
 export default async function KurulumSayfasi() {
   // Eğitmenin alan/hedef kurulumuna ihtiyacı yok; doğrudan yönetici paneline gider.
-  const { user, profil } = await gerekliProfil({
-    kurulumZorunlu: false,
-    adminiYonlendir: true,
-  });
-  const hedefler = await hedefNetler(user.id);
+  const { profil, veri: hedefler } = await profilVeVeri(
+    { kurulumZorunlu: false, adminiYonlendir: true },
+    (kimlik) => hedefNetler(kimlik),
+  );
 
   const baslangic: ProfilBaslangic = {
     adSoyad: profil?.ad_soyad ?? "",
