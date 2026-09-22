@@ -119,14 +119,16 @@ zemini bilerek beyaz: şeffaf bırakılsa koyu sekme temalarında lacivert harfl
 
 ## Performans notları
 
-**Coğrafya en büyük etken.** Supabase projesi Seul'de (`ap-northeast-2`), öğrenciler
-Türkiye'de. Vercel varsayılan olarak fonksiyonları Washington'da (`iad1`) çalıştırıyordu;
-her sayfa isteği Türkiye → Washington → Seul → geri yolunu izliyordu ve her veritabanı
-sorgusu Washington ↔ Seul arasında ~200 ms sürüyordu.
+**Coğrafya en büyük etken.** Öğrenciler Türkiye'de. İlk Supabase projesi Seul'deydi
+(`ap-northeast-2`) ve Vercel fonksiyonları Washington'da (`iad1`) çalışıyordu; her sayfa
+isteği Türkiye → Washington → Seul → geri yolunu izliyordu.
 
-- `vercel.json` → `"regions": ["icn1"]`: sunucu kodu veritabanının yanında çalışıyor,
-  sorgu başına gecikme ~200 ms'den ~2 ms'ye iniyor. Kalıcı çözüm veritabanını
-  Frankfurt'a taşıyıp bölgeyi `fra1` yapmak — adımlar: [supabase/FRANKFURT_TASIMA.md](supabase/FRANKFURT_TASIMA.md).
+- Veritabanı **Frankfurt**'a (`eu-central-1`) taşındı, `vercel.json` →
+  `"regions": ["fra1"]`: sunucu kodu hem öğrencilere hem veritabanına yakın. Giriş
+  sayfasının ilk yanıtı 522 ms'den 277 ms'ye indi. Taşıma adımları:
+  [supabase/FRANKFURT_TASIMA.md](supabase/FRANKFURT_TASIMA.md).
+- Bölge ile veritabanı her zaman aynı yerde olmalı; biri taşınıp diğeri kalırsa her
+  sorgu kıtalar arası gider ve site eskisinden de yavaşlar.
 - **Her sayfa tek veritabanı turu.** `profilVeVeri()` (`src/lib/db.ts`) profil kontrolünü
   ve sayfanın kendi sorgusunu paralel çalıştırıyor; kimlik `getClaims()` ile yerel
   doğrulandığı için veri sorgusu profili beklemek zorunda değil.
