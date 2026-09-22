@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Download, Pencil } from "lucide-react";
+import { Download, Pencil, RotateCcw, Target, type LucideIcon } from "lucide-react";
 import { programKaydet } from "@/app/panel/program/actions";
 import { programGorseliCiz, programGorseliniKaydet } from "@/lib/program-gorsel";
-import { hucreRengi } from "@/lib/program-renk";
+import { GUN_RENGI, hucreRengi, type HucreRengi } from "@/lib/program-renk";
 import {
   GUNLER,
   PROGRAM_DERSLERI,
@@ -13,25 +13,83 @@ import {
   programDersAdi,
   type Alan,
 } from "@/lib/yks";
-import { Alert, Button, Card, CardHeader, Spinner } from "./ui";
+import { Alert, Button, Card, CardHeader, Spinner, cn } from "./ui";
 
-/** Gün sütunu — hem düzenleme hem görüntüleme modunda aynı ızgara. */
-function GunSutunu({ gun, children }: { gun: number; children: React.ReactNode }) {
+/**
+ * Gün sütunu — hem düzenleme hem görüntüleme modunda aynı ızgara.
+ *
+ * Gün adı dolu, koyu bir bantta ve 18px kalın: ders hücreleri yarı saydam
+ * tonlarda olduğu için başlık onlarla karışmıyor. "Bugün" etiketi bandın üst
+ * kenarına taşıyor; bant içine koysaydık o sütun uzar, 7 sütunlu düzende
+ * satırlar hizasını kaybederdi.
+ */
+function GunSutunu({
+  gun,
+  bugun,
+  children,
+}: {
+  gun: number;
+  bugun: boolean;
+  children: React.ReactNode;
+}) {
+  const zemin = bugun ? GUN_RENGI.bugun : gun >= 5 ? GUN_RENGI.haftaSonu : GUN_RENGI.hafta;
   return (
-    <div className="flex flex-col gap-2">
-      <p
-        className={`rounded-md px-2 py-1.5 text-center text-sm font-semibold ${
-          gun >= 5 ? "bg-muted text-muted-ink" : "bg-canvas text-heading"
-        }`}
+    <section
+      aria-label={GUNLER[gun]}
+      className={cn(
+        "flex flex-col gap-2 rounded-xl p-1.5 lg:p-1",
+        // Sütuna zemin rengi verilmiyor: hücreler yarı saydam, altlarındaki mavi ton
+        // sarıyı bej-kahverengiye çeviriyordu. Bugünü başlık rengi ve çerçeve gösteriyor.
+        bugun && "ring-2 ring-[rgba(37,99,235,0.35)]",
+      )}
+    >
+      <h3
+        style={{ backgroundColor: zemin, color: GUN_RENGI.yazi }}
+        className="relative flex min-h-12 items-center justify-center rounded-lg px-2 text-lg font-bold tracking-tight shadow-sm"
       >
         {GUNLER[gun]}
-      </p>
+        {bugun && (
+          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 py-px text-[11px] font-semibold tracking-wide text-[#1d4ed8] uppercase shadow-sm ring-1 ring-[rgba(37,99,235,0.35)]">
+            Bugün
+          </span>
+        )}
+      </h3>
       {children}
-    </div>
+    </section>
   );
 }
 
-const IZGARA = "grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-7 lg:gap-2 lg:p-3";
+const IZGARA = "grid gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-7 lg:gap-1.5 lg:p-3";
+
+/**
+ * Ders hücresinin rengi: yarı saydam zemin + çerçeve, solda dolu şerit.
+ * Kenarlar tek tek yazılıyor: borderStyle kısayolu ile borderLeftStyle birlikte
+ * verilince React, hücre kesikliden düze geçerken şeridi bozabiliyor.
+ */
+function hucreStili(renk: HucreRengi): React.CSSProperties {
+  const cizgiStili = renk.kesikli ? "dashed" : "solid";
+  return {
+    backgroundColor: renk.zemin,
+    color: renk.yazi,
+    borderTopColor: renk.cizgi,
+    borderRightColor: renk.cizgi,
+    borderBottomColor: renk.cizgi,
+    borderLeftColor: renk.serit,
+    borderTopStyle: cizgiStili,
+    borderRightStyle: cizgiStili,
+    borderBottomStyle: cizgiStili,
+    borderLeftStyle: "solid",
+    fontWeight: renk.kalin ? 700 : 600,
+  };
+}
+
+/** Ders olmayan iki blok simgeyle de ayrışsın; anlam yalnızca renge kalmasın. */
+const OZEL_IKON: Record<string, LucideIcon> = { p_deneme: Target, p_tekrar: RotateCcw };
+
+/** Pazartesi = 0. `gunIso` Türkiye takvimindeki gün (YYYY-AA-GG). */
+function haftaninGunu(gunIso: string): number {
+  return (new Date(`${gunIso}T00:00:00Z`).getUTCDay() + 6) % 7;
+}
 
 /** Select'in kendi oku; rengi hücrenin yazı rengini takip eder. */
 const OK_SVG = (renk: string) =>
@@ -45,12 +103,15 @@ export function ProgramTablosu({
   ogrenciAdi,
   sonKayit,
   tabloYok,
+  bugun,
 }: {
   alan: Alan;
   baslangic: Record<string, string>;
   ogrenciAdi: string;
   sonKayit: string | null;
   tabloYok: boolean;
+  /** Türkiye takviminde bugün — sunucuda hesaplanıyor, telefonla aynı günü göstersin diye. */
+  bugun: string;
 }) {
   const [kayitli, setKayitli] = useState(baslangic);
   const [taslak, setTaslak] = useState(baslangic);
@@ -65,6 +126,7 @@ export function ProgramTablosu({
   const [indiriliyor, setIndiriliyor] = useState(false);
 
   const dersler = PROGRAM_DERSLERI[alan];
+  const bugunkuGun = haftaninGunu(bugun);
   const gosterilen = duzenle ? taslak : kayitli;
   const doluHucre = Object.values(gosterilen).filter(Boolean).length;
   const toplamHucre = GUNLER.length * PROGRAM_SATIR;
@@ -129,25 +191,23 @@ export function ProgramTablosu({
 
         <div className={IZGARA}>
           {GUNLER.map((_, gun) => (
-            <GunSutunu key={gun} gun={gun}>
+            <GunSutunu key={gun} gun={gun} bugun={gun === bugunkuGun}>
               {Array.from({ length: PROGRAM_SATIR }, (_, satir) => {
                 const anahtar = hucreAnahtari(gun, satir);
                 const deger = gosterilen[anahtar] ?? "";
                 const renk = hucreRengi(deger || undefined);
-                const stil = {
-                  backgroundColor: renk.zemin,
-                  color: renk.yazi,
-                  borderColor: renk.cizgi,
-                };
+                const stil = hucreStili(renk);
 
                 if (!duzenle) {
+                  const Ikon = OZEL_IKON[deger];
                   return (
                     <p
                       key={anahtar}
                       style={stil}
-                      className="flex min-h-11 items-center justify-center rounded-md border px-2 text-center text-sm font-medium"
+                      className="flex min-h-12 items-center gap-1.5 rounded-lg border border-l-4 px-3 py-1.5 text-sm leading-tight"
                     >
-                      {deger ? programDersAdi(deger) : "—"}
+                      {Ikon && <Ikon className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                      {deger ? programDersAdi(deger) : "Boş"}
                     </p>
                   );
                 }
@@ -165,9 +225,9 @@ export function ProgramTablosu({
                     /* text-base (16px) mobilde şart: iOS Safari 16px'ten küçük bir
                        alana odaklanınca sayfayı otomatik yakınlaştırıyor ve geri
                        döndürmüyor. lg'de yer dar olduğu için 13px'e iniyoruz. */
-                    className="min-h-11 w-full min-w-0 cursor-pointer appearance-none truncate rounded-md border bg-[length:10px] bg-[right_6px_center] bg-no-repeat py-2 pr-[18px] pl-[6px] text-center text-base font-medium transition-colors duration-200 focus:border-primary lg:text-[13px]"
+                    className="min-h-12 w-full min-w-0 cursor-pointer appearance-none truncate rounded-lg border border-l-4 bg-[length:10px] bg-[right_8px_center] bg-no-repeat py-2 pr-[22px] pl-2.5 text-left text-base transition-colors duration-200 hover:brightness-[0.97] lg:pr-[18px] lg:pl-2 lg:text-[13px]"
                   >
-                    <option value="">—</option>
+                    <option value="">Ders seç</option>
                     {dersler.map((d) => (
                       <option key={d.key} value={d.key}>
                         {d.ad}

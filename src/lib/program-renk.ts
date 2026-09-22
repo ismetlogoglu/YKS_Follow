@@ -1,47 +1,85 @@
 /**
  * Program hücrelerinin renkleri. Hem DOM'da hem canvas dışa aktarımında
- * kullanıldığı için Tailwind sınıfı değil, düz hex tutuluyor.
+ * kullanıldığı için Tailwind sınıfı değil, düz renk değeri tutuluyor.
  *
- * Her dersin kendi rengi var. Renkler bir alanda yan yana gelenler ayrışsın diye
- * renk çemberine yayıldı; hepsi açık zemin + koyu yazı düzeninde ve WCAG AA
- * (4,5:1) eşiğini geçiyor. Deneme tek istisna: dolu lacivert, çünkü haftanın
- * çıpası odur ve tabloda öne çıkması gerekir.
+ * Görünüm "Soft UI": her ders kendi renginin yarı saydam bir tonu (%12), aynı
+ * rengin yarı saydam çerçevesi ve solda dolu bir şerit; yazı o rengin koyu tonu.
+ * Yazı, beyaz üzerine düşen bu zeminde WCAG AA (4,5:1) eşiğini rahat geçiyor.
+ *
+ * Renkler ders ailelerine göre: matematik mavi-mor, dil pembe, fen turkuaz-yeşil,
+ * sosyal sarı-yeşil. Turuncu ve kahverengi bilerek yok. Kimya-2 ile Sosyal-1,
+ * Biyoloji-2 ile Sosyal-2 aynı rengi paylaşıyor; hiçbir alanda birlikte görünmezler.
  */
-export type HucreRengi = { zemin: string; yazi: string; cizgi: string };
-
-const RENKLER: Record<string, HucreRengi> = {
-  p_tyt_mat: { zemin: "#eff6ff", yazi: "#1d4ed8", cizgi: "#c8dcfa" },
-  p_tyt_turkce: { zemin: "#fff1f2", yazi: "#be123c", cizgi: "#fbcfd5" },
-  p_tyt_fen: { zemin: "#f0fdfa", yazi: "#0f766e", cizgi: "#b8e6df" },
-  p_tyt_sosyal: { zemin: "#fffbeb", yazi: "#b45309", cizgi: "#f4dfb0" },
-  p_paragraf: { zemin: "#fefce8", yazi: "#a16207", cizgi: "#eee3ab" },
-  p_ayt_mat: { zemin: "#eef2ff", yazi: "#4338ca", cizgi: "#cdd4f8" },
-  p_geometri: { zemin: "#faf5ff", yazi: "#7e22ce", cizgi: "#e4d3f7" },
-  p_fizik2: { zemin: "#f0f9ff", yazi: "#0369a1", cizgi: "#bfe0f5" },
-  p_kimya2: { zemin: "#fff7ed", yazi: "#c2410c", cizgi: "#f7d7bb" },
-  p_biyoloji2: { zemin: "#f0fdf4", yazi: "#15803d", cizgi: "#bfe6cc" },
-  p_ayt_edebiyat: { zemin: "#fdf2f8", yazi: "#be185d", cizgi: "#f7cee2" },
-  p_sos1: { zemin: "#fdf4ff", yazi: "#a21caf", cizgi: "#f0d0f5" },
-  p_sos2: { zemin: "#f5f3ff", yazi: "#6d28d9", cizgi: "#dcd3f9" },
-  p_deneme: { zemin: "#1e3a8a", yazi: "#ffffff", cizgi: "#1e3a8a" },
-  p_tekrar: { zemin: "#f1f5f9", yazi: "#475569", cizgi: "#d9e1ea" },
+export type HucreRengi = {
+  zemin: string;
+  yazi: string;
+  cizgi: string;
+  /** Soldaki dolu şerit. */
+  serit: string;
+  /** Tekrar bloğu: çerçeve kesikli, "yeniden dönülen" iş hissi. */
+  kesikli?: boolean;
+  /** Deneme bloğu: haftanın çıpası, yazısı kalın. */
+  kalin?: boolean;
 };
 
-// Boş hücrenin tiresi de etkileşimli bir kontrolün görünen içeriği; daha soluk
-// bir gri (#94a3b8) beyaz üzerinde 2,56:1 kalıyordu.
-export const BOS_HUCRE: HucreRengi = { zemin: "#ffffff", yazi: "#64748b", cizgi: "#e2e8f0" };
+function rgba(hex: string, opaklik: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${opaklik})`;
+}
+
+/** `ana`: Tailwind 500 tonu (zemin, çerçeve, şerit), `koyu`: 800 tonu (yazı). */
+function ton(ana: string, koyu: string): HucreRengi {
+  return { zemin: rgba(ana, 0.12), cizgi: rgba(ana, 0.32), serit: ana, yazi: koyu };
+}
+
+const RENKLER: Record<string, HucreRengi> = {
+  // Matematik ailesi
+  p_tyt_mat: ton("#3b82f6", "#1e40af"), // blue
+  p_ayt_mat: ton("#6366f1", "#3730a3"), // indigo
+  p_geometri: ton("#8b5cf6", "#5b21b6"), // violet
+  // Dil ailesi
+  p_tyt_turkce: ton("#f43f5e", "#9f1239"), // rose
+  p_paragraf: ton("#ec4899", "#9d174d"), // pink
+  p_ayt_edebiyat: ton("#d946ef", "#86198f"), // fuchsia
+  // Fen ailesi
+  p_tyt_fen: ton("#14b8a6", "#115e59"), // teal
+  p_fizik2: ton("#0ea5e9", "#075985"), // sky
+  p_kimya2: ton("#84cc16", "#3f6212"), // lime
+  p_biyoloji2: ton("#22c55e", "#166534"), // green
+  // Sosyal ailesi
+  p_tyt_sosyal: ton("#eab308", "#854d0e"), // yellow
+  p_sos1: ton("#84cc16", "#3f6212"), // lime
+  p_sos2: ton("#22c55e", "#166534"), // green
+  // Özel bloklar
+  p_deneme: { ...ton("#0f172a", "#0f172a"), zemin: rgba("#0f172a", 0.1), kalin: true },
+  p_tekrar: { ...ton("#64748b", "#334155"), zemin: rgba("#64748b", 0.08), kesikli: true },
+};
+
+/** Boş hücre: şeritsiz, kesikli çerçeve — "buraya ders koyabilirsin". */
+export const BOS_HUCRE: HucreRengi = {
+  zemin: "#ffffff",
+  yazi: "#64748b",
+  cizgi: "#cbd5e1",
+  serit: "#cbd5e1",
+  kesikli: true,
+};
 
 export function hucreRengi(dersKey: string | undefined): HucreRengi {
   return (dersKey && RENKLER[dersKey]) || BOS_HUCRE;
 }
 
+/** Gün başlıkları: dolu, koyu bantlar — ders hücrelerinin yarı saydam tonlarından ayrışsın. */
+export const GUN_RENGI = {
+  hafta: "#1e3a8a",
+  haftaSonu: "#475569",
+  bugun: "#2563eb",
+  yazi: "#ffffff",
+};
+
 /** Dışa aktarılan görselde kullanılan sabitler. */
 export const GORSEL = {
   zemin: "#ffffff",
   baslik: "#1e3a8a",
-  // Hafta sonu başlığında gri zemine düştüğü için bir ton koyu.
   soluk: "#475569",
   cizgi: "#dbeafe",
-  gunZemin: "#f8fafc",
-  haftaSonuZemin: "#f1f5f9",
 };

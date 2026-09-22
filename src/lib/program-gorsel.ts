@@ -1,4 +1,4 @@
-import { GORSEL, hucreRengi } from "./program-renk";
+import { GORSEL, GUN_RENGI, hucreRengi } from "./program-renk";
 import { GUNLER, PROGRAM_SATIR, hucreAnahtari, programDersAdi } from "./yks";
 
 /**
@@ -19,7 +19,7 @@ export function programGorseliCiz(
   const kenar = 48;
   const gunGenislik = 176;
   const satirYukseklik = 76;
-  const baslikYukseklik = 44;
+  const baslikYukseklik = 60;
   const ustAlan = 118;
   const altAlan = 58;
 
@@ -58,6 +58,7 @@ export function programGorseliCiz(
   };
 
   const SANS = '600 %dpx "Fira Sans", system-ui, -apple-system, sans-serif';
+  const SANS_K = '700 %dpx "Fira Sans", system-ui, -apple-system, sans-serif';
   const SANS_N = '400 %dpx "Fira Sans", system-ui, -apple-system, sans-serif';
   const f = (sablon: string, boy: number) => sablon.replace("%d", String(boy));
 
@@ -76,50 +77,69 @@ export function programGorseliCiz(
   });
   yaz(bugun, w - kenar, 46, f(SANS_N, 15), GORSEL.soluk, "right");
 
-  // Gün başlıkları
+  // Gün başlıkları — ekrandaki gibi dolu, koyu bantlar
   const gridUst = ustAlan;
   for (let g = 0; g < G; g++) {
     const x = kenar + g * gunGenislik;
-    c.fillStyle = g >= 5 ? GORSEL.haftaSonuZemin : GORSEL.gunZemin;
-    yuvarlak(x + 3, gridUst, gunGenislik - 6, baslikYukseklik - 6, 8);
+    c.fillStyle = g >= 5 ? GUN_RENGI.haftaSonu : GUN_RENGI.hafta;
+    yuvarlak(x + 4, gridUst, gunGenislik - 8, baslikYukseklik - 12, 10);
     c.fill();
     yaz(
       GUNLER[g],
       x + gunGenislik / 2,
-      gridUst + (baslikYukseklik - 6) / 2,
-      f(SANS, 15),
-      g >= 5 ? GORSEL.soluk : GORSEL.baslik,
+      gridUst + (baslikYukseklik - 12) / 2,
+      f(SANS_K, 20),
+      GUN_RENGI.yazi,
       "center",
     );
   }
 
-  // Hücreler
+  // Hücreler — yarı saydam zemin, çerçeve ve solda dolu şerit
   for (let s = 0; s < PROGRAM_SATIR; s++) {
     for (let g = 0; g < G; g++) {
-      const x = kenar + g * gunGenislik;
+      const x = kenar + g * gunGenislik + 4;
       const y = gridUst + baslikYukseklik + s * satirYukseklik;
+      const gen = gunGenislik - 8;
+      const yuk = satirYukseklik - 10;
       const ders = hucreler[hucreAnahtari(g, s)];
       const renk = hucreRengi(ders);
 
       c.fillStyle = renk.zemin;
-      yuvarlak(x + 3, y + 3, gunGenislik - 6, satirYukseklik - 8, 10);
+      yuvarlak(x, y, gen, yuk, 10);
       c.fill();
+
+      c.save();
+      c.clip();
+      c.fillStyle = renk.serit;
+      c.fillRect(x, y, 5, yuk);
+      c.restore();
+
+      yuvarlak(x, y, gen, yuk, 10);
       c.strokeStyle = renk.cizgi;
       c.lineWidth = 1;
+      c.setLineDash(renk.kesikli ? [5, 4] : []);
       c.stroke();
+      c.setLineDash([]);
 
-      const ad = ders ? programDersAdi(ders) : "—";
-      const merkezX = x + gunGenislik / 2;
-      const merkezY = y + (satirYukseklik - 8) / 2 + 3;
+      const ad = ders ? programDersAdi(ders) : "Boş";
+      const yazi = f(renk.kalin ? SANS_K : SANS, 15);
+      const ikon = ders ? IKONLAR[ders] : undefined;
+      let solX = x + 18;
+      const ortaY = y + yuk / 2;
+
+      if (ikon) {
+        ikonCiz(c, ikon, solX, ortaY - 8, 16, renk.yazi);
+        solX += 22;
+      }
 
       // Uzun ders adlarını iki satıra böl (örn. "TYT Matematik")
-      c.font = f(SANS, 15);
-      if (c.measureText(ad).width > gunGenislik - 28 && ad.includes(" ")) {
+      c.font = yazi;
+      if (c.measureText(ad).width > x + gen - 12 - solX && ad.includes(" ")) {
         const bosluk = ad.lastIndexOf(" ");
-        yaz(ad.slice(0, bosluk), merkezX, merkezY - 10, f(SANS, 15), renk.yazi, "center");
-        yaz(ad.slice(bosluk + 1), merkezX, merkezY + 10, f(SANS, 15), renk.yazi, "center");
+        yaz(ad.slice(0, bosluk), solX, ortaY - 10, yazi, renk.yazi);
+        yaz(ad.slice(bosluk + 1), solX, ortaY + 10, yazi, renk.yazi);
       } else {
-        yaz(ad, merkezX, merkezY, f(SANS, ders ? 15 : 18), renk.yazi, "center");
+        yaz(ad, solX, ortaY, yazi, renk.yazi);
       }
     }
   }
@@ -136,6 +156,38 @@ export function programGorseliCiz(
   yaz("yksfollow.com", w - kenar, altY, f(SANS_N, 13), GORSEL.soluk, "right");
 
   return canvas;
+}
+
+/**
+ * Ekrandaki Target ve RotateCcw simgelerinin (lucide) çizim verisi, 24×24 ızgarada.
+ * Resimde de aynı simgeler görünsün diye aynı yollar Path2D ile çiziliyor.
+ */
+const IKONLAR: Record<string, string[]> = {
+  p_deneme: [
+    "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
+    "M18 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0",
+    "M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0",
+  ],
+  p_tekrar: ["M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5"],
+};
+
+function ikonCiz(
+  c: CanvasRenderingContext2D,
+  yollar: string[],
+  x: number,
+  y: number,
+  boy: number,
+  renk: string,
+) {
+  c.save();
+  c.translate(x, y);
+  c.scale(boy / 24, boy / 24);
+  c.strokeStyle = renk;
+  c.lineWidth = 2;
+  c.lineCap = "round";
+  c.lineJoin = "round";
+  for (const yol of yollar) c.stroke(new Path2D(yol));
+  c.restore();
 }
 
 export type KaydetmeSonucu = "paylasildi" | "indirildi" | "iptal";

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ProgramTablosu } from "@/components/program-tablosu";
 import { GeriBaglantisi } from "@/components/ui";
 import { profilVeVeri } from "@/lib/db";
+import { turkiyeBugun } from "@/lib/yks";
 
 export const metadata: Metadata = { title: "Haftalık programım" };
 
@@ -37,6 +38,7 @@ export default async function ProgramSayfasi() {
         ogrenciAdi={profil.ad_soyad ?? ""}
         sonKayit={data?.updated_at ?? null}
         tabloYok={tabloYok}
+        bugun={turkiyeBugun()}
       />
     </div>
   );
