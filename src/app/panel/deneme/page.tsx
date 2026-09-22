@@ -195,12 +195,7 @@ export default async function DenemeSayfasi({ searchParams }: PageProps<"/panel/
                           {netYaz(Number(d.toplam_net))}
                         </p>
                       </div>
-                      <SilButonu
-                        action={denemeSil}
-                        id={d.id}
-                        etiket="Denemeyi sil"
-                        soru={`"${d.ad}" denemesini silmek istediğine emin misin? Bu işlem geri alınamaz.`}
-                      />
+                      <SilButonu action={denemeSil} id={d.id} etiket={`"${d.ad}" denemesini sil`} />
                     </div>
                   </div>
 

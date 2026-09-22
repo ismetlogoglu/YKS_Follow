@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { oturum, oturumKimligi } from "@/lib/db";
 import { dersler } from "@/lib/yks";
 import { enGecTarih } from "@/lib/tarih";
+import type { SilmeDurumu } from "@/components/sil-butonu";
 
 /** `token` her başarılı kayıtta değişir; form alanları bu değere göre sıfırlanır. */
 export type DenemeState = { error?: string; ok?: string; token?: string };
@@ -101,15 +102,24 @@ export async function denemeEkle(_prev: DenemeState, formData: FormData): Promis
   return { ok: `"${d.ad}" kaydedildi.`, token: crypto.randomUUID() };
 }
 
-export async function denemeSil(formData: FormData) {
+export async function denemeSil(_onceki: SilmeDurumu, formData: FormData): Promise<SilmeDurumu> {
   const id = metin(formData.get("id"));
-  if (!id) return;
-
   const kimlik = await oturumKimligi();
-  if (!kimlik) return;
+  if (!id || !kimlik) return { hata: "Oturumun kapanmış olabilir. Sayfayı yenileyip tekrar dene." };
   const supabase = await createClient();
 
   // mock_exam_sections satırları ON DELETE CASCADE ile birlikte silinir.
-  await supabase.from("mock_exams").delete().eq("id", id).eq("user_id", kimlik);
+  const { error, count } = await supabase
+    .from("mock_exams")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", kimlik);
+
+  // RLS izin vermezse hata dönmez, sadece 0 satır silinir; ikisi de öğrenciye söylenmeli.
+  if (error || !count) {
+    console.error("denemeSil başarısız", { id, count, error });
+    return { hata: "Deneme silinemedi. Sayfayı yenileyip tekrar dene." };
+  }
   revalidatePath("/panel", "layout");
+  return {};
 }

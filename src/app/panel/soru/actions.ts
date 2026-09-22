@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { oturum, oturumKimligi } from "@/lib/db";
 import { calismaDersleri } from "@/lib/yks";
 import { enGecTarih } from "@/lib/tarih";
+import type { SilmeDurumu } from "@/components/sil-butonu";
 
 /** `token` her başarılı kayıtta değişir; form alanları bu değere göre sıfırlanır. */
 export type KayitState = { error?: string; ok?: string; token?: string };
@@ -95,15 +96,24 @@ export async function calismaEkle(_prev: KayitState, formData: FormData): Promis
   return { ok: `${d.soru} soru kaydedildi.`, token: crypto.randomUUID() };
 }
 
-export async function calismaSil(formData: FormData) {
+export async function calismaSil(_onceki: SilmeDurumu, formData: FormData): Promise<SilmeDurumu> {
   const id = metin(formData.get("id"));
-  if (!id) return;
-
   const kimlik = await oturumKimligi();
-  if (!kimlik) return;
+  if (!id || !kimlik) return { hata: "Oturumun kapanmış olabilir. Sayfayı yenileyip tekrar dene." };
   const supabase = await createClient();
 
   // RLS zaten sahipliği zorunlu kılıyor; user_id filtresi ikinci bir emniyet.
-  await supabase.from("study_logs").delete().eq("id", id).eq("user_id", kimlik);
+  const { error, count } = await supabase
+    .from("study_logs")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("user_id", kimlik);
+
+  // RLS izin vermezse hata dönmez, sadece 0 satır silinir; ikisi de öğrenciye söylenmeli.
+  if (error || !count) {
+    console.error("calismaSil başarısız", { id, count, error });
+    return { hata: "Kayıt silinemedi. Sayfayı yenileyip tekrar dene." };
+  }
   revalidatePath("/panel", "layout");
+  return {};
 }
