@@ -14,7 +14,11 @@ import { calismaSil } from "./actions";
 
 export const metadata: Metadata = { title: "Soru girişi" };
 
-export default async function SoruSayfasi() {
+export default async function SoruSayfasi({ searchParams }: PageProps<"/panel/soru">) {
+  // JavaScript çalışmayan cihazda TYT/AYT düğmesi ?sinav= ile sayfayı yeniden yükler.
+  const { sinav } = await searchParams;
+  const baslangicSinavi = sinav === "AYT" ? "AYT" : "TYT";
+
   const {
     profil,
     veri: { data },
@@ -42,7 +46,7 @@ export default async function SoruSayfasi() {
         </p>
       </div>
 
-      <SoruFormu alan={profil.alan!} />
+      <SoruFormu alan={profil.alan!} baslangicSinavi={baslangicSinavi} />
 
       <Card>
         <CardHeader

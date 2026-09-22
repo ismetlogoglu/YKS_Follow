@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CalendarDays } from "lucide-react";
+import { AnalizPaneli } from "@/components/analiz-paneli";
 import {
   DersBazliHaftalikGrafigi,
-  DersDagilimGrafigi,
   HaftalikSoruGrafigi,
   HaftalikSureGrafigi,
-  NetTrendGrafigi,
 } from "@/components/grafikler";
+import { NotBalonu } from "@/components/not-balonu";
 import {
   Badge,
   Card,
@@ -20,14 +20,13 @@ import {
   Th,
 } from "@/components/ui";
 import { ogrenciVerisi } from "@/lib/admin";
+import { analizVerisi } from "@/lib/analiz";
 import {
   dersBazliHaftalik,
-  dersDagilimi,
   denemeOzeti,
   haftalikOzet,
   hedefKarsilastirma,
   kalanGun,
-  netTrendi,
 } from "@/lib/istatistik";
 import {
   ALAN_ADI,
@@ -37,6 +36,7 @@ import {
   kisaTarih,
   netYaz,
   tarihYaz,
+  turkiyeBugun,
   verim,
 } from "@/lib/yks";
 
@@ -52,8 +52,7 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
   const { profil, kayitlar, denemeler, bolumler, hedefler } = veri;
 
   const haftalar = haftalikOzet(kayitlar, denemeler, HAFTA_SAYISI);
-  const trend = netTrendi(denemeler);
-  const dagilim = dersDagilimi(kayitlar);
+  const analiz = analizVerisi(kayitlar, denemeler, bolumler);
   const dersHaftalik = dersBazliHaftalik(kayitlar, HAFTA_SAYISI);
   const karsilastirma = hedefKarsilastirma(hedefler, denemeler, bolumler);
   const tytOzet = denemeOzeti(denemeler, "TYT");
@@ -165,18 +164,22 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
         />
       </div>
 
-      <Card>
-        <CardHeader title="Deneme net trendi" description="TYT düz çizgi, AYT kesikli çizgi" />
-        <NetTrendGrafigi veri={trend} />
-      </Card>
+      {/* Öğrencinin kendi Analizlerim ekranındakiyle aynı; iki taraf aynı şeye bakıyor. */}
+      <AnalizPaneli
+        alan={profil.alan ?? "SAY"}
+        bugun={turkiyeBugun()}
+        kayitlar={analiz.kayitlar}
+        denemeler={analiz.denemeler}
+        ozetGoster={false}
+      />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Haftalık çözülen soru" description={`Son ${HAFTA_SAYISI} hafta`} />
+          <CardHeader title="Son 12 hafta" description="Hafta hafta çözülen soru" />
           <HaftalikSoruGrafigi veri={haftalar} />
         </Card>
         <Card>
-          <CardHeader title="Haftalık çalışma süresi" description="Dakika" />
+          <CardHeader title="Son 12 hafta" description="Hafta hafta çalışma süresi (dakika)" />
           <HaftalikSureGrafigi veri={haftalar} />
         </Card>
       </div>
@@ -241,11 +244,6 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
       </Card>
 
       <Card>
-        <CardHeader title="Ders bazlı soru dağılımı" description="En çok çalıştığı 10 ders" />
-        <DersDagilimGrafigi veri={dagilim} />
-      </Card>
-
-      <Card>
         <CardHeader title="Denemeler" description={`${denemeler.length} kayıt`} />
         {denemeler.length === 0 ? (
           <EmptyState title="Henüz deneme girilmemiş" />
@@ -279,8 +277,12 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
                   <Td className="tabular text-right font-semibold text-accent">
                     {netYaz(Number(d.toplam_net))}
                   </Td>
-                  <Td className="max-w-[18rem] truncate text-muted-ink" title={d.not_metni ?? ""}>
-                    {d.not_metni || "—"}
+                  <Td>
+                    {d.not_metni ? (
+                      <NotBalonu metin={d.not_metni} baslik={`${d.ad} · ${tarihYaz(d.tarih)}`} />
+                    ) : (
+                      <span className="text-muted-ink">—</span>
+                    )}
                   </Td>
                 </tr>
               ))}
@@ -337,8 +339,15 @@ export default async function OgrenciSayfasi({ params }: PageProps<"/admin/ogren
                   <Td className="tabular text-right text-muted-ink">
                     {netYaz(verim(k.soru, k.sure_dk))}
                   </Td>
-                  <Td className="max-w-[16rem] truncate text-muted-ink" title={k.not_metni ?? ""}>
-                    {k.not_metni || "—"}
+                  <Td>
+                    {k.not_metni ? (
+                      <NotBalonu
+                        metin={k.not_metni}
+                        baslik={`${dersAdi(k.ders)} · ${tarihYaz(k.tarih)}`}
+                      />
+                    ) : (
+                      <span className="text-muted-ink">—</span>
+                    )}
                   </Td>
                 </tr>
               ))}

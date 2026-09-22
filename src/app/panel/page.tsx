@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CalendarDays, CalendarRange, ClipboardList, PenLine } from "lucide-react";
+import { CalendarDays, CalendarRange, ChartColumn, ClipboardList, PenLine } from "lucide-react";
 import { YuklenenBaglanti } from "@/components/yuklenen-baglanti";
 import { profilVeVeri } from "@/lib/db";
 import { kalanGun } from "@/lib/istatistik";
@@ -27,6 +27,13 @@ const SECENEKLER = [
     Icon: CalendarRange,
     baslik: "Haftalık programım",
     aciklama: "Pazartesiden pazara üç blok; kaydet, istersen görsel olarak indir.",
+    ton: "sakin" as const,
+  },
+  {
+    href: "/panel/analiz" as const,
+    Icon: ChartColumn,
+    baslik: "Analizlerim",
+    aciklama: "Haftalık soru grafiğin, ders ders toplamların ve deneme netlerin.",
     ton: "sakin" as const,
   },
 ];

@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { denemeEkle, type DenemeState } from "@/app/panel/deneme/actions";
-import { bugun, dersler, net, netYaz, toplamSoru, type Alan, type SinavTuru } from "@/lib/yks";
+import { turkiyeBugun, dersler, net, netYaz, toplamSoru, type Alan, type SinavTuru } from "@/lib/yks";
 import { SinavSecici } from "./soru-formu";
 import { Alert, Button, Card, CardHeader, Field, Input, Spinner, Textarea } from "./ui";
 
@@ -33,8 +33,8 @@ type Girdi = { dogru: string; yanlis: string };
  * Alanlar ayrı bir bileşende: başarılı kayıttan sonra dışarıdaki `key`
  * değişince bileşen yeniden kurulur ve tablo boşalır.
  */
-function DenemeAlanlari({ alan }: { alan: Alan }) {
-  const [sinav, setSinav] = useState<SinavTuru>("TYT");
+function DenemeAlanlari({ alan, baslangicSinavi }: { alan: Alan; baslangicSinavi: SinavTuru }) {
+  const [sinav, setSinav] = useState<SinavTuru>(baslangicSinavi);
   const [girdiler, setGirdiler] = useState<Record<string, Girdi>>({});
 
   const liste = dersler(alan, sinav);
@@ -63,8 +63,8 @@ function DenemeAlanlari({ alan }: { alan: Alan }) {
             id="d_tarih"
             name="tarih"
             type="date"
-            defaultValue={bugun()}
-            max={bugun()}
+            defaultValue={turkiyeBugun()}
+            max={turkiyeBugun()}
             required
           />
         </Field>
@@ -190,7 +190,13 @@ function DenemeAlanlari({ alan }: { alan: Alan }) {
   );
 }
 
-export function DenemeFormu({ alan }: { alan: Alan }) {
+export function DenemeFormu({
+  alan,
+  baslangicSinavi = "TYT",
+}: {
+  alan: Alan;
+  baslangicSinavi?: SinavTuru;
+}) {
   const [state, formAction] = useActionState(denemeEkle, BOS);
 
   return (
@@ -204,7 +210,7 @@ export function DenemeFormu({ alan }: { alan: Alan }) {
         {state.error && <Alert tone="danger">{state.error}</Alert>}
         {state.ok && <Alert tone="success">{state.ok}</Alert>}
 
-        <DenemeAlanlari key={state.token ?? "ilk"} alan={alan} />
+        <DenemeAlanlari key={state.token ?? "ilk"} alan={alan} baslangicSinavi={baslangicSinavi} />
       </form>
     </Card>
   );

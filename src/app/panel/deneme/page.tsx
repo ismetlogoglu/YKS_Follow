@@ -23,7 +23,11 @@ import { denemeSil } from "./actions";
 
 export const metadata: Metadata = { title: "Denemeler" };
 
-export default async function DenemeSayfasi() {
+export default async function DenemeSayfasi({ searchParams }: PageProps<"/panel/deneme">) {
+  // JavaScript çalışmayan cihazda TYT/AYT düğmesi ?sinav= ile sayfayı yeniden yükler.
+  const { sinav } = await searchParams;
+  const baslangicSinavi = sinav === "AYT" ? "AYT" : "TYT";
+
   // Profil, denemeler (bölümleriyle gömülü) ve hedefler tek turda, paralel.
   const {
     profil,
@@ -69,7 +73,7 @@ export default async function DenemeSayfasi() {
         </p>
       </div>
 
-      <DenemeFormu alan={profil.alan!} />
+      <DenemeFormu alan={profil.alan!} baslangicSinavi={baslangicSinavi} />
 
       {denemeler.length > 0 && (
         <>

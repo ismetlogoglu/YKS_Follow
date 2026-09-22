@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { calismaEkle, type KayitState } from "@/app/panel/soru/actions";
-import { bugun, calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
+import { turkiyeBugun, calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Spinner, Textarea, cn } from "./ui";
 
 const BOS: KayitState = {};
@@ -11,9 +11,11 @@ const BOS: KayitState = {};
 /**
  * TYT / AYT seçimi.
  *
- * Gizli radyo + label yerine gerçek buton kullanılıyor: iOS Safari'de sr-only
- * (mutlak konumlu, kırpılmış) bir input'u saran label'a dokunmak her zaman
- * güvenilir şekilde tetiklenmiyordu. Form gönderimi için değeri gizli input taşır.
+ * Her seçenek aynı zamanda `?sinav=AYT` bağlantısı. JavaScript çalışıyorsa tıklama
+ * engellenip seçim anında değişir; çalışmıyorsa (eski iOS Safari'de derlenmiş kod
+ * okunamadığında olduğu gibi) sayfa o sınavın dersleriyle yeniden yüklenir. Önceki
+ * sürümde geçiş yalnızca JavaScript'e bağlıydı ve JS çalışmayan telefonda AYT'ye
+ * hiç geçilemiyordu. Form için değeri gizli input taşır.
  */
 export function SinavSecici({
   deger,
@@ -36,12 +38,22 @@ export function SinavSecici({
         className="inline-flex rounded-md border border-line-strong bg-muted p-0.5"
       >
         {(["TYT", "AYT"] as const).map((s) => (
-          <button
+          <a
             key={s}
-            type="button"
+            href={`?${ad}=${s}`}
             role="radio"
             aria-checked={deger === s}
-            onClick={() => onChange(s)}
+            onClick={(e) => {
+              e.preventDefault();
+              onChange(s);
+            }}
+            onKeyDown={(e) => {
+              // radio rolünde Boşluk da seçmeli; bağlantılar yalnızca Enter'a tepki verir.
+              if (e.key === " ") {
+                e.preventDefault();
+                onChange(s);
+              }
+            }}
             className={cn(
               "flex min-h-11 cursor-pointer items-center justify-center rounded px-6 font-medium transition-colors duration-200",
               deger === s
@@ -50,7 +62,7 @@ export function SinavSecici({
             )}
           >
             {s}
-          </button>
+          </a>
         ))}
       </div>
     </div>
@@ -80,8 +92,8 @@ function OzetKutusu({ etiket, deger }: { etiket: string; deger: string }) {
  * Form alanları ayrı bir bileşende: başarılı kayıttan sonra dışarıdaki `key`
  * değişince bileşen yeniden kurulur ve tüm alanlar boşalır.
  */
-function SoruAlanlari({ alan }: { alan: Alan }) {
-  const [sinav, setSinav] = useState<SinavTuru>("TYT");
+function SoruAlanlari({ alan, baslangicSinavi }: { alan: Alan; baslangicSinavi: SinavTuru }) {
+  const [sinav, setSinav] = useState<SinavTuru>(baslangicSinavi);
   const [soru, setSoru] = useState("");
   const [dogru, setDogru] = useState("");
   const [yanlis, setYanlis] = useState("");
@@ -108,8 +120,8 @@ function SoruAlanlari({ alan }: { alan: Alan }) {
             id="tarih"
             name="tarih"
             type="date"
-            defaultValue={bugun()}
-            max={bugun()}
+            defaultValue={turkiyeBugun()}
+            max={turkiyeBugun()}
             required
           />
         </Field>
@@ -218,7 +230,13 @@ function SoruAlanlari({ alan }: { alan: Alan }) {
   );
 }
 
-export function SoruFormu({ alan }: { alan: Alan }) {
+export function SoruFormu({
+  alan,
+  baslangicSinavi = "TYT",
+}: {
+  alan: Alan;
+  baslangicSinavi?: SinavTuru;
+}) {
   const [state, formAction] = useActionState(calismaEkle, BOS);
 
   return (
@@ -232,7 +250,7 @@ export function SoruFormu({ alan }: { alan: Alan }) {
         {state.error && <Alert tone="danger">{state.error}</Alert>}
         {state.ok && <Alert tone="success">{state.ok}</Alert>}
 
-        <SoruAlanlari key={state.token ?? "ilk"} alan={alan} />
+        <SoruAlanlari key={state.token ?? "ilk"} alan={alan} baslangicSinavi={baslangicSinavi} />
       </form>
     </Card>
   );

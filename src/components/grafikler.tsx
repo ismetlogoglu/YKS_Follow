@@ -4,6 +4,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
@@ -13,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { HaftaSatiri, NetNoktasi } from "@/lib/istatistik";
-import { dersAdi, netYaz } from "@/lib/yks";
+import { netYaz } from "@/lib/yks";
 
 const RENK = {
   tyt: "#1e40af",
@@ -35,16 +36,24 @@ function Kutu({
   birim,
 }: {
   active?: boolean;
-  payload?: { name?: string; value?: number | string | null; color?: string }[];
+  payload?: {
+    name?: string;
+    value?: number | string | null;
+    color?: string;
+    payload?: { baslik?: string };
+  }[];
   label?: string | number;
   birim?: string;
 }) {
-  if (!active || !payload?.length) return null;
+  // Boş nokta (henüz gelmemiş gün, o dersi içermeyen deneme) için ipucu açma.
+  const dolu = payload?.filter((p) => p.value != null) ?? [];
+  if (!active || !dolu.length) return null;
+  const baslik = dolu[0]?.payload?.baslik ?? label;
 
   return (
     <div className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm shadow-sm">
-      <p className="mb-1 font-medium text-heading">{label}</p>
-      {payload.map((p, i) => (
+      <p className="mb-1 font-medium text-heading">{baslik}</p>
+      {dolu.map((p, i) => (
         <p key={i} className="tabular flex items-center gap-2 text-muted-ink">
           <span
             className="inline-block h-2 w-2 rounded-full"
@@ -209,35 +218,98 @@ export function DersBazliHaftalikGrafigi({
   );
 }
 
-export function DersDagilimGrafigi({ veri }: { veri: { ders: string; soru: number }[] }) {
-  if (veri.length === 0) return <Bos mesaj="Henüz soru kaydı yok." />;
+/* -------------------------------------------------------------------------- */
+/*  Analiz ekranı                                                             */
+/* -------------------------------------------------------------------------- */
 
-  const veriler = veri.slice(0, 10).map((d) => ({ ...d, ad: dersAdi(d.ders) }));
+/** `soru: null` = henüz gelmemiş gün; 0 çizilirse çizgi o güne düşüyormuş gibi görünür. */
+export type GunVerisi = { gun: string; baslik: string; soru: number | null };
 
+/**
+ * Haftanın 7 günü: çubuk = o gün çözülen soru, çizgi aynı değerlerin eğilimi.
+ * Çizgi ipucunda tekrar edilmiyor (tooltipType="none"), aynı sayıyı iki kez
+ * göstermenin anlamı yok.
+ */
+export function HaftaGunluGrafik({ veri }: { veri: GunVerisi[] }) {
   return (
-    <div className="w-full p-2" style={{ height: Math.max(veriler.length * 34 + 40, 180) }}>
+    <div className="h-72 w-full p-2">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={veriler}
-          layout="vertical"
-          margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-        >
-          <CartesianGrid stroke={RENK.izgara} horizontal={false} />
-          <XAxis type="number" tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} />
-          <YAxis
-            type="category"
-            dataKey="ad"
-            tick={EKSEN}
-            tickLine={false}
-            axisLine={false}
-            width={130}
-          />
+        <ComposedChart data={veri} margin={{ top: 12, right: 12, left: -16, bottom: 0 }}>
+          <CartesianGrid stroke={RENK.izgara} vertical={false} />
+          <XAxis dataKey="gun" tick={EKSEN} tickLine={false} axisLine={{ stroke: RENK.izgara }} />
+          <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip
             content={<Kutu birim="soru" />}
             cursor={{ fill: RENK.izgara, fillOpacity: 0.5 }}
           />
-          <Bar dataKey="soru" name="Çözülen soru" fill={RENK.soru} radius={[0, 3, 3, 0]} />
+          <Bar
+            dataKey="soru"
+            name="Çözülen soru"
+            fill={RENK.soru}
+            radius={[4, 4, 0, 0]}
+            maxBarSize={48}
+          />
+          <Line
+            dataKey="soru"
+            type="monotone"
+            stroke={RENK.tyt}
+            strokeWidth={2}
+            dot={{ r: 3, fill: RENK.tyt }}
+            activeDot={false}
+            tooltipType="none"
+            legendType="none"
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Ders ders toplam çözülen soru — etiketler çağıranın hazırladığı gibi (TYT/AYT önekli). */
+export function DersToplamGrafigi({ veri }: { veri: { ad: string; soru: number }[] }) {
+  return (
+    <div className="w-full p-2" style={{ height: Math.max(veri.length * 34 + 40, 180) }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={veri} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+          <CartesianGrid stroke={RENK.izgara} horizontal={false} />
+          <XAxis type="number" tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} />
+          <YAxis type="category" dataKey="ad" tick={EKSEN} tickLine={false} axisLine={false} width={150} />
+          <Tooltip content={<Kutu birim="soru" />} cursor={{ fill: RENK.izgara, fillOpacity: 0.5 }} />
+          <Bar dataKey="soru" name="Toplam çözülen" fill={RENK.soru} radius={[0, 3, 3, 0]} />
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export type DenemeNoktasi = { etiket: string; baslik: string; net: number | null };
+
+/** Seçilen ders ya da toplam için deneme netlerinin zaman içindeki seyri. */
+export function DenemeNetGrafigi({ veri, renk }: { veri: DenemeNoktasi[]; renk: "tyt" | "ayt" }) {
+  return (
+    <div className="h-72 w-full p-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={veri} margin={{ top: 12, right: 12, left: -16, bottom: 0 }}>
+          <CartesianGrid stroke={RENK.izgara} vertical={false} />
+          <XAxis dataKey="etiket" tick={EKSEN} tickLine={false} axisLine={{ stroke: RENK.izgara }} />
+          {/* Net eksi olabilir (yanlış/4 doğruyu geçerse); alt sınırı 0'a kilitlemek onu keserdi. */}
+          <YAxis
+            tick={EKSEN}
+            tickLine={false}
+            axisLine={false}
+            domain={[(min: number) => Math.min(0, Math.floor(min)), "auto"]}
+          />
+          <Tooltip content={<Kutu birim="net" />} />
+          <Line
+            dataKey="net"
+            name="Net"
+            type="monotone"
+            stroke={RENK[renk]}
+            strokeWidth={2}
+            dot={{ r: 3 }}
+            connectNulls
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

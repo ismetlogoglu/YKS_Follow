@@ -53,7 +53,10 @@ Sosyal-2 40 = 160) ve aday puan türüne göre bunlardan **ikisini**, yani 80 so
   sonuçları Türkçe / Sosyal / Temel Matematik / Fen olarak raporlanır; alt branş neti
   verilmez, dolayısıyla hedefi de o düzeyde koymak gerekir.
 - **Günlük soru girişi** branş düzeyindedir: öğrenci "Fen Bilimleri" değil Fizik çalışır.
-  TYT için 9 ders listelenir (yukarıdaki alt kırılımlar), AYT için zaten branş bazlıdır.
+  TYT için yukarıdaki alt kırılımlar listelenir, AYT için zaten branş bazlıdır. Tek istisna
+  **Sosyal Bilimler**: karma sosyal testi çözen öğrenci için ayrı bir seçenek olarak da
+  duruyor ve deneme listesiyle aynı anahtarı (`tyt_sosyal`) kullanıyor, yani analizlerde
+  tek ders olarak görünüyor.
 
 Sınav tarihi (`SINAV_TARIHI`, `src/lib/yks.ts`) **19 Haziran 2027** olarak sabittir;
 öğrenciye sorulmaz. ÖSYM takvimi değişirse yalnızca o satır güncellenir.
@@ -68,14 +71,18 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
 
 1. Kayıt → profil kurulumu (alan + TYT/AYT hedef netleri), bir kez. Sınav tarihi
    sorulmaz, sistemde sabittir.
-2. Her girişte ana ekranda **üç buton**: *Günlük çözülen soru sayısını gir*,
-   *Deneme sonucu gir* ve *Haftalık programım*.
+2. Her girişte ana ekranda **dört buton**: *Günlük çözülen soru sayısını gir*,
+   *Deneme sonucu gir*, *Haftalık programım* ve *Analizlerim*.
 3. Giriş sayfalarında kendi son kayıtlarını görür ve yanlış girdiğini silebilir.
    Deneme sayfasında ayrıca **son 10 denemesinin net grafiğini** ve son 10
    ortalamasını hedef netleriyle karşılaştıran tabloyu görür.
 4. **Haftalık programım**: pazartesiden pazara, her gün 3 blok. Her hücrede alanına
    uygun ders seçilir, program kaydedilir ve istenirse görsel olarak indirilir
    (telefonda paylaşım sayfası üzerinden galeriye kaydedilebilir).
+5. **Analizlerim** (`/panel/analiz`): toplam ve bu hafta çözülen soru; haftanın 7 günü
+   için çubuk + çizgi grafik (önceki haftalara geçilebilir, "Tüm dersler" ya da tek ders
+   seçilebilir); ders ders toplam çözülen soru; deneme netlerinin çizgi grafiği (TYT/AYT
+   toplamı ya da Türkçe, Sosyal, Temel Matematik, Fen gibi tek test seçilerek).
 
 **Eğitmen** — `/admin`, öğrenci odaklı:
 
@@ -85,9 +92,11 @@ geride olduğu ve toplam net açığı, gidişat (ilk denemelere göre yükseli�
 aktivite tarihi.
 
 Karttaki isme tıklayınca **öğrenci detayı** (`/admin/ogrenci/[id]`): TYT/AYT net özeti
-(son 10, genel, en iyi, son deneme), net trendi, haftalık soru ve süre grafikleri, ders
-bazlı haftalık soru grafiği, son 10 denemeye göre hedef-mevcut karşılaştırması, ders
-dağılımı, tüm denemeler ve tüm günlük kayıtlar.
+(son 10, genel, en iyi, son deneme), öğrencinin *Analizlerim* ekranındaki grafiklerin
+aynısı (`AnalizPaneli` ortak bileşen), son 12 haftanın soru, süre ve ders bazlı soru
+grafikleri, son 10 denemeye göre hedef-mevcut karşılaştırması, tüm denemeler ve tüm
+günlük kayıtlar. Tablodaki uzun notlar kısaltılmış görünür; üzerine tıklayınca tam metin
+bir balonda açılır.
 
 Tarih aralığı filtresi soru/süre/deneme sayılarını etkiler; **net ortalamaları her zaman
 tüm denemeler üzerinden** hesaplanır — "son 10 deneme", seçili aralıkta 2 deneme varsa
@@ -130,7 +139,22 @@ sorgusu Washington ↔ Seul arasında ~200 ms sürüyordu.
 - `oturum()` React `cache()` ile sarılı; layout ve page aynı profili tekrar sorgulamıyor.
 - Her rota segmentinde `loading.tsx` iskeleti, bağlantılarda `useLinkStatus`, formlarda
   `useFormStatus` göstergesi var.
-- Recharts yalnızca `/admin` rotalarında; öğrenci sayfaları grafik paketi indirmez.
+- Recharts yalnızca grafik içeren rotalarda (`/admin`, `/panel/deneme`, `/panel/analiz`);
+  soru girişi ve program sayfaları grafik paketi indirmez.
+
+## Eski iPhone desteği
+
+Next 16 varsayılan olarak Safari 16.4+ için derler. Derlenen kodda `class { static { … } }`
+blokları kalıyordu; Safari 16.4 öncesi bu sözdizimini okuyamayınca React hiç
+canlanmıyordu. Formlar tarayıcının kendi gönderimiyle çalışmaya devam ettiği için sorun
+sadece JavaScript'e bağlı düğmelerde (TYT/AYT seçimi) görünüyordu.
+
+- `package.json` → `browserslist` hedefi **iOS / Safari 14**'e indirildi; derleme artık bu
+  blokları dönüştürüyor. Kontrol: `.next/static/chunks` içinde `static {` geçmemeli.
+- TYT/AYT seçici aynı zamanda `?sinav=AYT` bağlantısı. JavaScript çalışmasa bile sayfa
+  sunucudan AYT dersleriyle yeniden gelir.
+- Tarih alanlarının varsayılanı ve üst sınırı sunucunun saatine değil Türkiye takvimine
+  göre (`turkiyeBugun()`); gece 00:00–03:00 arası "bugün" seçilemiyordu.
 
 ## Teknik
 
@@ -153,8 +177,8 @@ src/
     (auth)/giris, (auth)/kayit    Giriş ve kayıt
     auth/                          Server actions + OAuth callback
     kurulum/                       İlk profil kurulumu (2 adım)
-    panel/                         Öğrenci — üç butonluk giriş ekranı
-      soru/ deneme/ program/ ayarlar/
+    panel/                         Öğrenci — dört butonluk giriş ekranı
+      soru/ deneme/ program/ analiz/ ayarlar/
     admin/                         Eğitmen paneli
       ogrenci/[id]/                Öğrenci detayı: grafikler + tüm kayıtlar
       export/                      .xlsx indirme
@@ -162,6 +186,7 @@ src/
   lib/
     yks.ts                         Alan/ders tanımları, net hesabı
     istatistik.ts                  Haftalık özet, trend, hedef karşılaştırma
+    analiz.ts                      Analiz ekranının veri biçimi (öğrenci + eğitmen ortak)
     db.ts, admin.ts                Veri erişimi
     supabase/                      İstemciler
   proxy.ts                         Oturum tazeleme + rota koruması

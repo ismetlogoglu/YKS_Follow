@@ -52,6 +52,11 @@ export const TYT_DERSLER: Ders[] = [
 export const TYT_CALISMA_DERSLERI: Ders[] = [
   { key: "tyt_turkce", ad: "Türkçe", soru: 40 },
   { key: "tyt_matematik", ad: "Temel Matematik", soru: 40 },
+  // Karma sosyal testi (20 soru, dört branş bir arada) için. Branşlar aşağıda ayrıca
+  // seçilebiliyor; bu seçenek toplamı 120'nin üstüne çıkarır ama bu listedeki
+  // soru sayıları yalnızca bilgi amaçlı, hiçbir hesapta kullanılmıyor.
+  // Anahtar deneme listesindekiyle aynı ki analizlerde tek ders olarak görünsün.
+  { key: "tyt_sosyal", ad: "Sosyal Bilimler", soru: 20 },
   { key: "tyt_tarih", ad: "Tarih", soru: 5 },
   { key: "tyt_cografya", ad: "Coğrafya", soru: 5 },
   { key: "tyt_felsefe", ad: "Felsefe", soru: 5 },
@@ -307,6 +312,37 @@ export function yerelIso(d: Date): string {
 
 export function bugun(): string {
   return yerelIso(new Date());
+}
+
+/**
+ * Türkiye takvimindeki bugün. Sunucu UTC'de çalışıyor; Türkiye UTC+3 olduğu için
+ * gece 00:00–03:00 arasında sunucunun "bugün"ü bir gün geride kalırdı. Haftalık
+ * grafikte sunucu ile telefonun farklı haftayı çizmemesi için ikisi de bunu kullanır.
+ */
+export function turkiyeBugun(): string {
+  // "en-CA" kısayolu bazı tarayıcı sürümlerinde YYYY-MM-DD yerine gg/aa/yyyy veriyor;
+  // parçaları tek tek alıp birleştirmek her ortamda aynı sonucu verir.
+  const parca = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const al = (tur: string) => parca.find((x) => x.type === tur)?.value ?? "";
+  return `${al("year")}-${al("month")}-${al("day")}`;
+}
+
+/** Verilen günün bulunduğu haftanın Pazartesi–Pazar tarihleri (YYYY-MM-DD). */
+export function haftaninGunleri(gunIso: string, haftaOfseti = 0): string[] {
+  const [y, a, g] = gunIso.split("-").map(Number);
+  const t = new Date(Date.UTC(y, a - 1, g));
+  const haftaGunu = t.getUTCDay(); // 0 = Pazar
+  t.setUTCDate(t.getUTCDate() + (haftaGunu === 0 ? -6 : 1 - haftaGunu) + haftaOfseti * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(t);
+    d.setUTCDate(t.getUTCDate() + i);
+    return isoTarih(d);
+  });
 }
 
 export function tarihYaz(iso: string): string {
