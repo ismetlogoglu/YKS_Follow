@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Download, Pencil, RotateCcw, Target, type LucideIcon } from "lucide-react";
 import { programKaydet } from "@/app/panel/program/actions";
-import { programGorseliCiz, programGorseliniKaydet } from "@/lib/program-gorsel";
+import { programGorseliCiz, programGorseliniKaydet, uygunYon } from "@/lib/program-gorsel";
 import { GUN_RENGI, hucreRengi, type HucreRengi } from "@/lib/program-renk";
 import {
   GUNLER,
@@ -152,7 +152,7 @@ export function ProgramTablosu({
     setHata(null);
     setBilgi(null);
     try {
-      const canvas = programGorseliCiz(gosterilen, ogrenciAdi);
+      const canvas = programGorseliCiz(gosterilen, ogrenciAdi, uygunYon());
       const sonuc = await programGorseliniKaydet(canvas, "haftalik-program.png");
       if (sonuc === "paylasildi") {
         setBilgi("Paylaşım penceresi açıldı — “Fotoğraflara Kaydet” ile galerine ekleyebilirsin.");
