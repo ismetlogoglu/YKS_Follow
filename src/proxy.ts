@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { projeAdresi } from "@/lib/supabase/ayarlar";
 
 /** Oturum gerektiren bölümler. */
 const KORUMALI = ["/panel", "/kurulum", "/admin"];
@@ -15,7 +16,7 @@ export async function proxy(request: NextRequest) {
   // Ayarlar eksikse isteği olduğu gibi geçir; sayfa katmanı anlaşılır bir hata gösterir.
   if (!url || !anonKey) return response;
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(projeAdresi(url), anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -1,4 +1,13 @@
 /**
+ * Supabase panelinde "Project URL" yerine "REST URL" (…supabase.co/rest/v1/)
+ * kopyalanırsa istemci her isteği /rest/v1/auth/v1/… gibi yanlış bir yola gönderir
+ * ve giriş dahil hiçbir şey çalışmaz. Adresin yalnızca kök kısmını kullanıyoruz.
+ */
+export function projeAdresi(url: string): string {
+  return new URL(url).origin;
+}
+
+/**
  * Ortam değişkenleri eksikken Supabase istemcisi anlamsız bir hata fırlatıyor.
  * Bunun yerine ne yapılması gerektiğini söyleyen tek bir mesaj veriyoruz.
  */
@@ -14,5 +23,5 @@ export function supabaseAyarlari() {
     );
   }
 
-  return { url, anonKey };
+  return { url: projeAdresi(url), anonKey };
 }
