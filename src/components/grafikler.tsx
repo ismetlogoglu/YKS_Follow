@@ -4,10 +4,13 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,7 +49,11 @@ function Kutu({
   birim?: string;
 }) {
   // Boş nokta (henüz gelmemiş gün, o dersi içermeyen deneme) için ipucu açma.
-  const dolu = payload?.filter((p) => p.value != null) ?? [];
+  // Aynı seriyi iki kez çizen grafikte (çubuk + çizgi) aynı ad bir kez yazılsın:
+  // Recharts 3, çizgideki tooltipType="none"a rağmen onu da listeye koyuyor.
+  const dolu = (payload?.filter((p) => p.value != null) ?? []).filter(
+    (p, i, dizi) => dizi.findIndex((x) => x.name === p.name) === i,
+  );
   if (!active || !dolu.length) return null;
   const baslik = dolu[0]?.payload?.baslik ?? label;
 
@@ -227,7 +234,7 @@ export type GunVerisi = { gun: string; baslik: string; soru: number | null };
 
 /**
  * Haftanın 7 günü: çubuk = o gün çözülen soru, çizgi aynı değerlerin eğilimi.
- * Çizgi ipucunda tekrar edilmiyor (tooltipType="none"), aynı sayıyı iki kez
+ * Çizgi ipucunda tekrar edilmiyor (aynı ad, Kutu tekrarları ayıklıyor), aynı sayıyı iki kez
  * göstermenin anlamı yok.
  */
 export function HaftaGunluGrafik({ veri }: { veri: GunVerisi[] }) {
@@ -251,6 +258,7 @@ export function HaftaGunluGrafik({ veri }: { veri: GunVerisi[] }) {
           />
           <Line
             dataKey="soru"
+            name="Çözülen soru"
             type="monotone"
             stroke={RENK.tyt}
             strokeWidth={2}
@@ -310,6 +318,78 @@ export function DenemeNetGrafigi({ veri, renk }: { veri: DenemeNoktasi[]; renk: 
             connectNulls
           />
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export type DagilimDilimi = { ad: string; soru: number; renk: string };
+
+function DilimKutusu({
+  active,
+  payload,
+  toplam,
+}: {
+  active?: boolean;
+  payload?: { name?: string; value?: number; payload?: { renk?: string } }[];
+  toplam: number;
+}) {
+  const p = payload?.[0];
+  if (!active || !p || !toplam) return null;
+  const soru = Number(p.value ?? 0);
+  return (
+    <div className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm shadow-sm">
+      <p className="flex items-center gap-2 font-medium text-heading">
+        <span
+          className="inline-block h-2 w-2 rounded-full"
+          style={{ backgroundColor: p.payload?.renk }}
+          aria-hidden="true"
+        />
+        {p.name}
+      </p>
+      <p className="tabular text-muted-ink">
+        <span className="font-semibold text-ink">{soru.toLocaleString("tr-TR")}</span> soru · %
+        {Math.round((soru / toplam) * 100)}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Haftalık ders dağılımı. En büyük dilim saat 12'den başlayıp saat yönünde
+ * küçülerek iniyor; ortada haftanın toplamı. Renk tek başına anlam taşımıyor:
+ * çağıran yanına her dersin sayısını ve yüzdesini yazan listeyi koyuyor.
+ */
+export function DersDagilimGrafigi({ veri, toplam }: { veri: DagilimDilimi[]; toplam: number }) {
+  return (
+    <div className="relative aspect-square w-full max-w-[220px]">
+      {/* Ortadaki toplam grafikten önce: ipucu kutusu üstünden geçerken onu örtsün. */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="tabular text-2xl leading-tight font-semibold text-heading">
+          {toplam.toLocaleString("tr-TR")}
+        </span>
+        <span className="text-xs text-muted-ink">soru</span>
+      </div>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={veri}
+            dataKey="soru"
+            nameKey="ad"
+            innerRadius="62%"
+            outerRadius="100%"
+            startAngle={90}
+            endAngle={-270}
+            paddingAngle={veri.length > 1 ? 1.5 : 0}
+            stroke="#ffffff"
+            strokeWidth={2}
+          >
+            {veri.map((d) => (
+              <Cell key={d.ad} fill={d.renk} />
+            ))}
+          </Pie>
+          <Tooltip content={<DilimKutusu toplam={toplam} />} />
+        </PieChart>
       </ResponsiveContainer>
     </div>
   );

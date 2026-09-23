@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AnalizPaneli } from "@/components/analiz-paneli";
+import { DenemeTablolari } from "@/components/deneme-tablolari";
 import { GeriBaglantisi } from "@/components/ui";
 import { analizVerisi } from "@/lib/analiz";
 import { DENEME_SECIMI, denemeleriAc, profilVeVeri, type CalismaKaydi, type DenemeSatiri } from "@/lib/db";
@@ -15,7 +16,13 @@ export default async function AnalizSayfasi() {
     Promise.all([
       // Grafik yalnızca tarih/ders/soru kullanıyor; kalan sütunları taşımaya gerek yok.
       supabase.from("study_logs").select("tarih, ders, soru").eq("user_id", kimlik),
-      supabase.from("mock_exams").select(DENEME_SECIMI).eq("user_id", kimlik).order("tarih"),
+      // Aynı günün denemeleri girildiği sırada kalsın: tablo en son girileni üste koyuyor.
+      supabase
+        .from("mock_exams")
+        .select(DENEME_SECIMI)
+        .eq("user_id", kimlik)
+        .order("tarih")
+        .order("created_at"),
     ]),
   );
 
@@ -32,7 +39,7 @@ export default async function AnalizSayfasi() {
         <GeriBaglantisi href="/panel">Ana ekran</GeriBaglantisi>
         <h1 className="mt-1 text-2xl font-semibold text-heading">Analizlerim</h1>
         <p className="mt-1 text-sm text-muted-ink">
-          Çözdüğün soruların ve deneme netlerinin zaman içindeki seyri.
+          Çözdüğün soruların dağılımı, deneme netlerinin seyri ve tüm denemelerinin tablosu.
         </p>
       </div>
 
@@ -42,6 +49,8 @@ export default async function AnalizSayfasi() {
         kayitlar={veri.kayitlar}
         denemeler={veri.denemeler}
       />
+
+      <DenemeTablolari alan={profil.alan!} denemeler={veri.denemeler} />
     </div>
   );
 }

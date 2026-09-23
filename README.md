@@ -81,8 +81,10 @@ yönlendirme `profiles.is_admin` bayrağına bakar; eğitmen `/panel` altına d�
    (telefonda paylaşım sayfası üzerinden galeriye kaydedilebilir).
 5. **Analizlerim** (`/panel/analiz`): toplam ve bu hafta çözülen soru; haftanın 7 günü
    için çubuk + çizgi grafik (önceki haftalara geçilebilir, "Tüm dersler" ya da tek ders
-   seçilebilir); ders ders toplam çözülen soru; deneme netlerinin çizgi grafiği (TYT/AYT
-   toplamı ya da Türkçe, Sosyal, Temel Matematik, Fen gibi tek test seçilerek).
+   seçilebilir); haftalık ders dağılımı donut'u (en fazla 6 dilim, fazlası "Diğer"; yanında
+   her dersin sayısı ve yüzdesi); ders ders toplam çözülen soru; deneme netlerinin çizgi
+   grafiği (TYT/AYT toplamı ya da tek test); TYT ve AYT için ayrı deneme tabloları (her
+   testin doğru/yanlış/neti, en yeni deneme üstte, en altta ortalamalar).
 
 **Eğitmen** — `/admin`, öğrenci odaklı:
 

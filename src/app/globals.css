@@ -59,6 +59,13 @@ body {
   border-radius: 4px;
 }
 
+/* Recharts grafikleri klavyeyle gezilebilsin diye odaklanabilir. Fareyle tıklayınca
+   tarayıcı sistem renginde (macOS'ta turuncu olabiliyor) bir çerçeve çiziyordu;
+   çerçeve yalnızca klavyeyle gelindiğinde, yukarıdaki halkayla görünsün. */
+.recharts-wrapper :focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* Numbers line up in tables and stat cards */
 .tabular {
   font-variant-numeric: tabular-nums;
