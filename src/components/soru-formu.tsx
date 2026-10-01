@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { calismaEkle, type KayitState } from "@/app/panel/soru/actions";
-import { turkiyeBugun, calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
+import { calismaDersleri, net, netYaz, verim, type Alan, type SinavTuru } from "@/lib/yks";
+import { TarihAlani } from "./tarih-alani";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Spinner, Textarea, cn } from "./ui";
 
 const BOS: KayitState = {};
@@ -116,14 +117,7 @@ function SoruAlanlari({ alan, baslangicSinavi }: { alan: Alan; baslangicSinavi: 
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Tarih" htmlFor="tarih" required>
-          <Input
-            id="tarih"
-            name="tarih"
-            type="date"
-            defaultValue={turkiyeBugun()}
-            max={turkiyeBugun()}
-            required
-          />
+          <TarihAlani id="tarih" />
         </Field>
 
         <div className="flex items-end">

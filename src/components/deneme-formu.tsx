@@ -3,8 +3,9 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { denemeEkle, type DenemeState } from "@/app/panel/deneme/actions";
-import { turkiyeBugun, dersler, net, netYaz, toplamSoru, type Alan, type SinavTuru } from "@/lib/yks";
+import { dersler, net, netYaz, toplamSoru, type Alan, type SinavTuru } from "@/lib/yks";
 import { SinavSecici } from "./soru-formu";
+import { TarihAlani } from "./tarih-alani";
 import { Alert, Button, Card, CardHeader, Field, Input, Spinner, Textarea } from "./ui";
 
 /**
@@ -59,14 +60,7 @@ function DenemeAlanlari({ alan, baslangicSinavi }: { alan: Alan; baslangicSinavi
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Tarih" htmlFor="d_tarih" required>
-          <Input
-            id="d_tarih"
-            name="tarih"
-            type="date"
-            defaultValue={turkiyeBugun()}
-            max={turkiyeBugun()}
-            required
-          />
+          <TarihAlani id="d_tarih" />
         </Field>
         <div className="flex items-end">
           <SinavSecici deger={sinav} onChange={setSinav} />
